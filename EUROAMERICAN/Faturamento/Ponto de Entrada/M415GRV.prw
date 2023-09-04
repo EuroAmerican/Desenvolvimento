@@ -13,7 +13,7 @@
 @version 1.0
 @Hystory Alterado para tratar projeto comissões 12/02/2022 - Fabio Carneiro 
 @History Ajustado em 09/09/2022 tratamento referente a não considerar comissão se o item estiver zerado - Fabio carneiro dos Santos
-@return Logical, permite ou nao a mudança de linha
+@return Logical, permite ou nao a mudança de linha- prs - 04/09/2023 - TESTE
 
 /*/
 User Function M415GRV()
