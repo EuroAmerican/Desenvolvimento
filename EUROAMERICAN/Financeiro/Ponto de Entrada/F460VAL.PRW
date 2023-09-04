@@ -2,7 +2,14 @@
 #include "topconn.ch"
 #include "tbiconn.ch"
 #include "protheus.ch"
-
+/*/{Protheus.doc} F460VAL
+description Ponto de entrada que receber os dados gerados pelo F460SE1
+@type function USER
+@version 1 
+@author paulo.lenzi
+@since 7/20/2023
+@return variant, return_description
+/*/
 User Function F460VAL()
     local aCompl := aClone(PARAMIXB) 
  
