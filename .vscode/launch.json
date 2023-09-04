@@ -4,10 +4,10 @@
 		{
 			"type": "totvs_language_debug",
 			"request": "launch",
-			"name": "Depuração do idioma TOTVS",
+			"name": "TOTVS Language Debug",
 			"program": "${command:AskForProgramName}",
 			"cwb": "${workspaceFolder}",
-			"smartclientBin": "D:\\POLITICAS\\Bin\\smartclient\\smartclient.exe",
+			"smartclientBin": "C:\\Acesso\\Desenvolvimento\\smartclient.exe",
 			"isMultiSession": true,
 			"enableTableSync": true
 		}
