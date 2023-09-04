@@ -43,6 +43,7 @@ user function PCPM050()
     local oSide as object
      
     Private oBrowse := FwBrowse():New()
+
     Private nPosFor := 1 ,nPosLoj := 2, nPosPro:=3,nPosLoc :=  4,nPosSLD :=  5,nPosQEP :=  6,nPosDPN :=  7    
     Private nPosCmm := 8, nPosCmD := 9, nPosEAD:= 10,nPosEDD:= 11,nPosESD:=12, nPosESQ := 13, nPosSMQ := 14                  
     Private nPosSMD := 15, nPosDUR:= 16, nPosEnt:= 17, nPosDel := 18
@@ -143,78 +144,78 @@ user function PCPM050()
     oBrowse:disableReport()
     oBrowse:setInsert( .T. ) 
     oBrowse:Setdelete(.T.,{ || PM050DEL() } ) 
-    oBrowse:SetBlkBackColor({|| IIf(aDespes[oBrowse:nAt,18]=.T. , CLR_LIGHTGRAY , Nil )})
+    oBrowse:SetBlkBackColor({|| IIf(aDespes[oBrowse:nAt,nPosDel]=.T. , CLR_LIGHTGRAY , Nil )})
    
    // Colunas da tela
 
-   oBrowse:addColumn({"Fornecedor",{||aDespes[oBrowse:nAt,01]}, GetSx3Cache("ZJ_FORNECE","X3_TIPO"), pesqPict("SZJ","ZJ_FORNECE") , 1, tamSx3("ZJ_FORNECE")[1] ,, .T. ,, .F.,, "XZJ_FORNECE",, .F., .T.,, "XZJ_FORNECE"})
+   oBrowse:addColumn({"Fornecedor",{||aDespes[oBrowse:nAt,nPosFor]}, GetSx3Cache("ZJ_FORNECE","X3_TIPO"), pesqPict("SZJ","ZJ_FORNECE") , 1, tamSx3("ZJ_FORNECE")[1] ,, .T. ,, .F.,, "XZJ_FORNECE",, .F., .T.,, "XZJ_FORNECE"})
 
-   oBrowse:addColumn({"Loja",{||aDespes[oBrowse:nAt,02]}, GetSx3Cache("ZJ_LOJA","X3_TIPO"), pesqPict("SZJ","ZJ_LOJA")    , 1, tamSx3("ZJ_LOJA")[1] ,, .T. ,BvldFor, .F.,, "XZJ_LOJA",, .F., .T.,, "XZJ_LOJA"})
+   oBrowse:addColumn({"Loja",{||aDespes[oBrowse:nAt,nPosLoj]}, GetSx3Cache("ZJ_LOJA","X3_TIPO"), pesqPict("SZJ","ZJ_LOJA")    , 1, tamSx3("ZJ_LOJA")[1] ,, .T. ,BvldFor, .F.,, "XZJ_LOJA",, .F., .T.,, "XZJ_LOJA"})
 
-   oBrowse:addColumn({"Produto", {||aDespes[oBrowse:nAt,03]}, GetSx3Cache("ZJ_PRODUTO","X3_TIPO"), pesqPict("SZJ","ZJ_PRODUTO") , 1, tamSx3("ZJ_PRODUTO")[1] ,, .T. ,BvldPro, .F.,, "XZJ_PRODUTO",, .F., .T.,, "XZJ_PRODUTO"})
+   oBrowse:addColumn({"Produto", {||aDespes[oBrowse:nAt,nPosPro]}, GetSx3Cache("ZJ_PRODUTO","X3_TIPO"), pesqPict("SZJ","ZJ_PRODUTO") , 1, tamSx3("ZJ_PRODUTO")[1] ,, .T. ,BvldPro, .F.,, "XZJ_PRODUTO",, .F., .T.,, "XZJ_PRODUTO"})
 
-   oBrowse:addColumn({"Local", {||aDespes[oBrowse:nAt,04]}, GetSx3Cache("ZJ_LOCAL","X3_TIPO"), pesqPict("SZJ","ZJ_LOCAL")   , 1, tamSx3("ZJ_LOCAL")[1],, .T. , , .F.,, "XZJ_LOCAL",, .F., .T.,, "XZJ_LOCAL"})
+   oBrowse:addColumn({"Local", {||aDespes[oBrowse:nAt,nPosSLD]}, GetSx3Cache("ZJ_LOCAL","X3_TIPO"), pesqPict("SZJ","ZJ_LOCAL")   , 1, tamSx3("ZJ_LOCAL")[1],, .T. , , .F.,, "XZJ_LOCAL",, .F., .T.,, "XZJ_LOCAL"})
 
-   oBrowse:addColumn({"Saldo", {||aDespes[oBrowse:nAt,05]}, GetSx3Cache("ZJ_SALDO","X3_TIPO"), pesqPict("SZJ","ZJ_SALDO")   , 1, tamSx3("ZJ_SALDO")[1] ,tamSx3("ZJ_SALDO")[2], .T. , , .F.,, "XZJ_SALDO",, .F., .T.,, "XZJ_SALDO"})
+   oBrowse:addColumn({"Saldo", {||aDespes[oBrowse:nAt,nPosSLD]}, GetSx3Cache("ZJ_SALDO","X3_TIPO"), pesqPict("SZJ","ZJ_SALDO")   , 1, tamSx3("ZJ_SALDO")[1] ,tamSx3("ZJ_SALDO")[2], .T. , , .F.,, "XZJ_SALDO",, .F., .T.,, "XZJ_SALDO"})
 
-   oBrowse:addColumn({"Empenho", {||aDespes[oBrowse:nAt,06]}, GetSx3Cache("ZJ_QEMP","X3_TIPO"), pesqPict("SZJ","ZJ_QEMP")   , 1, tamSx3("ZJ_QEMP")[1] ,tamSx3("ZJ_QEMP")[2], .T. , , .F.,, "XZJ_QEMP",, .F., .T.,, "XZJ_QEMP"})
+   oBrowse:addColumn({"Empenho", {||aDespes[oBrowse:nAt,nPosQEP]}, GetSx3Cache("ZJ_QEMP","X3_TIPO"), pesqPict("SZJ","ZJ_QEMP")   , 1, tamSx3("ZJ_QEMP")[1] ,tamSx3("ZJ_QEMP")[2], .T. , , .F.,, "XZJ_QEMP",, .F., .T.,, "XZJ_QEMP"})
 
-   oBrowse:addColumn({"Disponivel", {||aDespes[oBrowse:nAt,07]}, GetSx3Cache("ZJ_DISPON","X3_TIPO"), pesqPict("SZJ","ZJ_DISPON")   , 1, tamSx3("ZJ_DISPON")[1] ,tamSx3("ZJ_DISPON")[2], .T. , , .F.,, "XZJ_DISPON",, .F., .T.,, "XZJ_DISPON"})
+   oBrowse:addColumn({"Disponivel", {||aDespes[oBrowse:nAt,nPosDPN]}, GetSx3Cache("ZJ_DISPON","X3_TIPO"), pesqPict("SZJ","ZJ_DISPON")   , 1, tamSx3("ZJ_DISPON")[1] ,tamSx3("ZJ_DISPON")[2], .T. , , .F.,, "XZJ_DISPON",, .F., .T.,, "XZJ_DISPON"})
 
-   oBrowse:addColumn({FWX3Titulo("ZJ_CONSUM"), {||aDespes[oBrowse:nAt,08]}, GetSx3Cache("ZJ_CONSUM","X3_TIPO"), pesqPict("SZJ","ZJ_CONSUM")   , 1, tamSx3("ZJ_CONSUM")[1] ,tamSx3("ZJ_CONSUM")[2], .T. , , .F.,, "XZJ_CONSUM",, .F., .T.,, "XZJ_CONSUM"})
+   oBrowse:addColumn({FWX3Titulo("ZJ_CONSUM"), {||aDespes[oBrowse:nAt,nPosCmm]}, GetSx3Cache("ZJ_CONSUM","X3_TIPO"), pesqPict("SZJ","ZJ_CONSUM")   , 1, tamSx3("ZJ_CONSUM")[1] ,tamSx3("ZJ_CONSUM")[2], .T. , , .F.,, "XZJ_CONSUM",, .F., .T.,, "XZJ_CONSUM"})
 
-   oBrowse:addColumn({FWX3Titulo("ZJ_CONSUD"), {||aDespes[oBrowse:nAt,09]}, GetSx3Cache("ZJ_CONSUD","X3_TIPO"), pesqPict("SZJ","ZJ_CONSUD")   , 1, tamSx3("ZJ_CONSUD")[1] ,tamSx3("ZJ_CONSUD")[2], .T. , , .F.,, "XZJ_CONSUD",, .F., .T.,, "XZJ_CONSUD"})
+   oBrowse:addColumn({FWX3Titulo("ZJ_CONSUD"), {||aDespes[oBrowse:nAt,nPosCmD]}, GetSx3Cache("ZJ_CONSUD","X3_TIPO"), pesqPict("SZJ","ZJ_CONSUD")   , 1, tamSx3("ZJ_CONSUD")[1] ,tamSx3("ZJ_CONSUD")[2], .T. , , .F.,, "XZJ_CONSUD",, .F., .T.,, "XZJ_CONSUD"})
 
-   oBrowse:addColumn({FWX3Titulo("ZJ_STOKATU"), {||aDespes[oBrowse:nAt,10]}, GetSx3Cache("ZJ_STOKATU","X3_TIPO"), pesqPict("SZJ","ZJ_STOKATU")   , 1, tamSx3("ZJ_STOKATU")[1] ,tamSx3("ZJ_STOKATU")[2], .T. , , .F.,, "XZJ_STOKATU",, .F., .T.,, "XZJ_STOKATU"})
+   oBrowse:addColumn({FWX3Titulo("ZJ_STOKATU"), {||aDespes[oBrowse:nAt,nPosEAD]}, GetSx3Cache("ZJ_STOKATU","X3_TIPO"), pesqPict("SZJ","ZJ_STOKATU")   , 1, tamSx3("ZJ_STOKATU")[1] ,tamSx3("ZJ_STOKATU")[2], .T. , , .F.,, "XZJ_STOKATU",, .F., .T.,, "XZJ_STOKATU"})
 
-   oBrowse:addColumn({FWX3Titulo("ZJ_STOKDAY"), {||aDespes[oBrowse:nAt,11]}, GetSx3Cache("ZJ_STOKDAY","X3_TIPO"), pesqPict("SZJ","ZJ_STOKDAY")   , 1, tamSx3("ZJ_STOKDAY")[1] ,tamSx3("ZJ_STOKDAY")[2], .T. , , .F.,, "XZJ_STOKDAY",, .F., .T.,, "XZJ_STOKDAY"})
+   oBrowse:addColumn({FWX3Titulo("ZJ_STOKDAY"), {||aDespes[oBrowse:nAt,nPosEDD]}, GetSx3Cache("ZJ_STOKDAY","X3_TIPO"), pesqPict("SZJ","ZJ_STOKDAY")   , 1, tamSx3("ZJ_STOKDAY")[1] ,tamSx3("ZJ_STOKDAY")[2], .T. , , .F.,, "XZJ_STOKDAY",, .F., .T.,, "XZJ_STOKDAY"})
 
-   oBrowse:addColumn({FWX3Titulo("ZJ_SEGDIA"), {||aDespes[oBrowse:nAt,12]}, GetSx3Cache("ZJ_SEGDIA","X3_TIPO"), pesqPict("SZJ","ZJ_SEGDIA")   , 1, tamSx3("ZJ_SEGDIA")[1] ,tamSx3("ZJ_SEGDIA")[2], .T. , , .F.,, "XZJ_SEGDIA",, .F., .T.,, "XZJ_SEGDIA"})
+   oBrowse:addColumn({FWX3Titulo("ZJ_SEGDIA"), {||aDespes[oBrowse:nAt,nPosESD]}, GetSx3Cache("ZJ_SEGDIA","X3_TIPO"), pesqPict("SZJ","ZJ_SEGDIA")   , 1, tamSx3("ZJ_SEGDIA")[1] ,tamSx3("ZJ_SEGDIA")[2], .T. , , .F.,, "XZJ_SEGDIA",, .F., .T.,, "XZJ_SEGDIA"})
 
-   oBrowse:addColumn({FWX3Titulo("ZJ_SEGQTD"), {||aDespes[oBrowse:nAt,13]}, GetSx3Cache("ZJ_SEGQTD","X3_TIPO"), pesqPict("SZJ","ZJ_SEGQTD")   , 1, tamSx3("ZJ_SEGQTD")[1] ,tamSx3("ZJ_SEGQTD")[2], .T. , , .F.,, "XZJ_SEGQTD",, .F., .T.,, "XZJ_SEGQTD"})
+   oBrowse:addColumn({FWX3Titulo("ZJ_SEGQTD"), {||aDespes[oBrowse:nAt,nPosESQ]}, GetSx3Cache("ZJ_SEGQTD","X3_TIPO"), pesqPict("SZJ","ZJ_SEGQTD")   , 1, tamSx3("ZJ_SEGQTD")[1] ,tamSx3("ZJ_SEGQTD")[2], .T. , , .F.,, "XZJ_SEGQTD",, .F., .T.,, "XZJ_SEGQTD"})
 
-   oBrowse:addColumn({FWX3Titulo("ZJ_SIMUQTD"), {||aDespes[oBrowse:nAt,14]}, GetSx3Cache("ZJ_SIMUQTD","X3_TIPO"), pesqPict("SZJ","ZJ_SIMUQTD")   , 1, tamSx3("ZJ_SIMUQTD")[1] ,tamSx3("ZJ_SIMUQTD")[2], .T. , , .F.,, "XZJ_SIMUQTD",, .F., .T.,, "XZJ_SIMUQTD"})
+   oBrowse:addColumn({FWX3Titulo("ZJ_SIMUQTD"), {||aDespes[oBrowse:nAt,nPosSMQ]}, GetSx3Cache("ZJ_SIMUQTD","X3_TIPO"), pesqPict("SZJ","ZJ_SIMUQTD")   , 1, tamSx3("ZJ_SIMUQTD")[1] ,tamSx3("ZJ_SIMUQTD")[2], .T. , , .F.,, "XZJ_SIMUQTD",, .F., .T.,, "XZJ_SIMUQTD"})
 
-   oBrowse:addColumn({FWX3Titulo("ZJ_SIMUDIA"), {||aDespes[oBrowse:nAt,15]}, GetSx3Cache("ZJ_SIMUDIA","X3_TIPO"), pesqPict("SZJ","ZJ_SIMUDIA")   , 1, tamSx3("ZJ_SIMUDIA")[1] ,tamSx3("ZJ_SIMUDIA")[2], .T. , , .F.,, "XZJ_SIMUDIA",, .F., .T.,, "XZJ_SIMUDIA"})
+   oBrowse:addColumn({FWX3Titulo("ZJ_SIMUDIA"), {||aDespes[oBrowse:nAt,nPosSMD]}, GetSx3Cache("ZJ_SIMUDIA","X3_TIPO"), pesqPict("SZJ","ZJ_SIMUDIA")   , 1, tamSx3("ZJ_SIMUDIA")[1] ,tamSx3("ZJ_SIMUDIA")[2], .T. , , .F.,, "XZJ_SIMUDIA",, .F., .T.,, "XZJ_SIMUDIA"})
 
-   oBrowse:addColumn({FWX3Titulo("ZJ_DURA"), {||aDespes[oBrowse:nAt,16]}, GetSx3Cache("ZJ_DURA","X3_TIPO"), pesqPict("SZJ","ZJ_DURA")   , 1, tamSx3("ZJ_DURA")[1] ,tamSx3("ZJ_DURA")[2], .T. , , .F.,, "XZJ_DURA",, .F., .T.,, "XZJ_DURA"})
+   oBrowse:addColumn({FWX3Titulo("ZJ_DURA"), {||aDespes[oBrowse:nAt,nPosDUR]}, GetSx3Cache("ZJ_DURA","X3_TIPO"), pesqPict("SZJ","ZJ_DURA")   , 1, tamSx3("ZJ_DURA")[1] ,tamSx3("ZJ_DURA")[2], .T. , , .F.,, "XZJ_DURA",, .F., .T.,, "XZJ_DURA"})
 
-   oBrowse:addColumn({FWX3Titulo("ZJ_ENTREGA"), {||aDespes[oBrowse:nAt,17]}, GetSx3Cache("ZJ_ENTREGA","X3_TIPO"), pesqPict("SZJ","ZJ_ENTREGA")   , 1, tamSx3("ZJ_ENTREGA")[1] ,tamSx3("ZJ_ENTREGA")[2], .T. , , .F.,, "XZJ_ENTREGA",, .F., .T.,, "XZJ_ENTREGA"})
+   oBrowse:addColumn({FWX3Titulo("ZJ_ENTREGA"), {||aDespes[oBrowse:nAt,nPosEnt]}, GetSx3Cache("ZJ_ENTREGA","X3_TIPO"), pesqPict("SZJ","ZJ_ENTREGA")   , 1, tamSx3("ZJ_ENTREGA")[1] ,tamSx3("ZJ_ENTREGA")[2], .T. , , .F.,, "XZJ_ENTREGA",, .F., .T.,, "XZJ_ENTREGA"})
 
-   oBrowse:aColumns[1]:XF3 := 'SA2AT'
-   oBrowse:acolumns[1]:ledit     := .T.
-   oBrowse:acolumns[1]:cReadVar:= 'aDespes[oBrowse:nAt,01]'
+   oBrowse:aColumns[nPosFor]:XF3 := 'SA2AT'
+   oBrowse:acolumns[nPosFor]:ledit     := .T.
+   oBrowse:acolumns[nPosFor]:cReadVar:= 'aDespes[oBrowse:nAt,nPosFor]'
    
-   oBrowse:acolumns[2]:ledit     := .T.
-   oBrowse:acolumns[2]:cReadVar:= 'aDespes[oBrowse:nAt,02]'
+   oBrowse:acolumns[nPosLoj]:ledit     := .T.
+   oBrowse:acolumns[nPosLoj]:cReadVar:= 'aDespes[oBrowse:nAt,nPosLoj]'
 
-   oBrowse:aColumns[3]:XF3 := BF3Pro
-   oBrowse:acolumns[3]:ledit     := .T.
-   oBrowse:acolumns[3]:cReadVar:= 'aDespes[oBrowse:nAt,03]'
+   oBrowse:aColumns[nPosPro]:XF3 := BF3Pro
+   oBrowse:acolumns[nPosPro]:ledit     := .T.
+   oBrowse:acolumns[nPosPro]:cReadVar:= 'aDespes[oBrowse:nAt,nPosPro]'
 
-   oBrowse:aColumns[4]:XF3 := 'SB2'
-   oBrowse:acolumns[4]:ledit     := .T.
-   oBrowse:acolumns[4]:cReadVar:= 'aDespes[oBrowse:nAt,04]'
+   oBrowse:aColumns[nPosLoc]:XF3 := 'SB2'
+   oBrowse:acolumns[nPosLoc]:ledit     := .T.
+   oBrowse:acolumns[nPosLoc]:cReadVar:= 'aDespes[oBrowse:nAt,nPosLoc]'
 
-   oBrowse:acolumns[5]:ledit     := .F.
-   oBrowse:acolumns[6]:ledit     := .F.
-   oBrowse:acolumns[7]:ledit     := .F.
-   oBrowse:acolumns[8]:ledit     := .F.
-   oBrowse:acolumns[9]:ledit     := .F.
-   oBrowse:acolumns[10]:ledit     := .F.
-   oBrowse:acolumns[11]:ledit     := .F.
+   oBrowse:acolumns[nPosSLD]:ledit     := .F.
+   oBrowse:acolumns[nPosQEP]:ledit     := .F.
+   oBrowse:acolumns[nPosDPN]:ledit     := .F.
+   oBrowse:acolumns[nPosCmm]:ledit     := .F.
+   oBrowse:acolumns[nPosCmD]:ledit     := .F.
+   oBrowse:acolumns[nPosEAD]:ledit     := .F.
+   oBrowse:acolumns[nPosEDD]:ledit     := .F.
 
-   oBrowse:acolumns[12]:ledit     := .T.
-   oBrowse:acolumns[12]:cReadVar:= 'aDespes[oBrowse:nAt,12]'
+   oBrowse:acolumns[nPosESD]:ledit     := .T.
+   oBrowse:acolumns[nPosESD]:cReadVar:= 'aDespes[oBrowse:nAt,nPosESD]'
 
-   oBrowse:acolumns[13]:ledit     := .F.
+   oBrowse:acolumns[nPosESQ]:ledit     := .F.
 
-   oBrowse:acolumns[14]:ledit     := .T.
-   oBrowse:acolumns[14]:cReadVar:= 'aDespes[oBrowse:nAt,14]'
+   oBrowse:acolumns[nPosSMQ]:ledit     := .T.
+   oBrowse:acolumns[nPosSMQ]:cReadVar:= 'aDespes[oBrowse:nAt,nPosSMQ]'
 
-   oBrowse:acolumns[15]:ledit     := .F.
-   oBrowse:acolumns[16]:ledit     := .F.
-   oBrowse:acolumns[17]:ledit     := .F.
+   oBrowse:acolumns[nPosSMD]:ledit     := .F.
+   oBrowse:acolumns[nPosDUR]:ledit     := .F.
+   oBrowse:acolumns[nPosEnt]:ledit     := .T.
  
   oBrowse:setAfterAddLine( { || posIncLine()} )
   oBrowse:setEditCell( .T.,{ || PM050VLD() } )
@@ -409,12 +410,13 @@ description Função para registros (aCols) deletados
 @since 9/1/2023
 @return variant, return_description
 /*/
+
 Static Function PM050DEL()
      Local cArea       := FWGetArea()
      Local nLinha      := oBrowse:nAt
      Local lSit        := oBrowse:LDELETE
      if lSit 
-         aDespes[nLinha][18] := .T.
+         aDespes[nLinha][nPosDel] := .T.
      Endif    
      oBrowse:setArray(aDespes)	// Forço o Browse a ler os novos valores informados.
      oBrowse:GoTop()
