@@ -1,4 +1,3 @@
-//Bibliotecas
 #Include "Totvs.ch"
 #Include "Protheus.ch"
 #Include "FwBrowse.ch"
@@ -18,9 +17,7 @@ description Programa de manutenção dos Lançamentos de Programação
 user function PCPM050()
     local bSair   as block
     Local bGrava  as block
-    Local BvldFor as Block
     Local BvldPro as Block
-    Local BF3Pro  as Block
     Local bGraf   as Block
     Local bTela   as Block
 
@@ -44,13 +41,11 @@ user function PCPM050()
      
     Private oBrowse := FwBrowse():New()
 
-    Private nPosFor := 1 ,nPosLoj := 2, nPosPro:=3,nPosLoc :=  4,nPosSLD :=  5,nPosQEP :=  6,nPosDPN :=  7    
-    Private nPosCmm := 8, nPosCmD := 9, nPosEAD:= 10,nPosEDD:= 11,nPosESD:=12, nPosESQ := 13, nPosSMQ := 14                  
-    Private nPosSMD := 15, nPosDUR:= 16, nPosEnt:= 17, nPosDel := 18
+    Private nPosPro:= 01, nPosLoc:= 02, nPosSLD:= 03, nPosQEP:= 04, nPosDPN:= 05, nPosCmm:= 06, nPosCmD:= 07  
+    Private nPosEAD:= 08, nPosEDD:= 09, nPosESD:= 10, nPosESQ:= 11, nPosSMQ:= 12, nPosSMD:= 13, nPosDUR:= 14                  
+    Private nPosEnt:= 15, nPosDel := 16
     
-    Private aDespes:=  {{space( tamSx3( "ZJ_FORNECE" )[1]),;    // Codigo do fornecedor
-                      space( tamSx3( "ZJ_LOCAL" )[1]),;       // Loja do fornecedor
-                      space( tamSx3( "ZJ_PRODUTO" )[1]),;     // Codigo do produto
+    Private aDespes:=  {{space( tamSx3( "ZJ_PRODUTO" )[1]),;  // Codigo do produto
                       space( tamSx3( "ZJ_LOCAL" )[1]),;       // Local
                       0.0000,;                                // Saldo Atual
                       0.0000,;                                // Empenhos
@@ -71,9 +66,8 @@ user function PCPM050()
     bSair := {|| Iif(MsgYesNo('Deseja realmente sair do gerenciamento?','Gerenciamento'),(oDlg:End()),NIL)}
     bGrava := {|| Iif(MsgYesNo('Grava Lançamentos?','Programação'),(PM050GRAVA(),oDlg:End()),NIL)}
 
-    BvldFor := {|| PM050CPO(1) }
-    BvldPro := {|| PM050CPO(2) }
-    BF3Pro  := {|| U_PM050F3() }
+   
+    BvldPro := {|| PM050CPO(adespes[oBrowse:nAt][nPosPro]) }
     bGraf   := {|| U_PM050GRAF(adespes[oBrowse:nAt][nPosPro]) }
     bTela   := {|| U_PM050Tela(adespes[oBrowse:nAt][nPosPro]) }
 
@@ -148,10 +142,6 @@ user function PCPM050()
    
    // Colunas da tela
 
-   oBrowse:addColumn({"Fornecedor",{||aDespes[oBrowse:nAt,nPosFor]}, GetSx3Cache("ZJ_FORNECE","X3_TIPO"), pesqPict("SZJ","ZJ_FORNECE") , 1, tamSx3("ZJ_FORNECE")[1] ,, .T. ,, .F.,, "XZJ_FORNECE",, .F., .T.,, "XZJ_FORNECE"})
-
-   oBrowse:addColumn({"Loja",{||aDespes[oBrowse:nAt,nPosLoj]}, GetSx3Cache("ZJ_LOJA","X3_TIPO"), pesqPict("SZJ","ZJ_LOJA")    , 1, tamSx3("ZJ_LOJA")[1] ,, .T. ,BvldFor, .F.,, "XZJ_LOJA",, .F., .T.,, "XZJ_LOJA"})
-
    oBrowse:addColumn({"Produto", {||aDespes[oBrowse:nAt,nPosPro]}, GetSx3Cache("ZJ_PRODUTO","X3_TIPO"), pesqPict("SZJ","ZJ_PRODUTO") , 1, tamSx3("ZJ_PRODUTO")[1] ,, .T. ,BvldPro, .F.,, "XZJ_PRODUTO",, .F., .T.,, "XZJ_PRODUTO"})
 
    oBrowse:addColumn({"Local", {||aDespes[oBrowse:nAt,nPosSLD]}, GetSx3Cache("ZJ_LOCAL","X3_TIPO"), pesqPict("SZJ","ZJ_LOCAL")   , 1, tamSx3("ZJ_LOCAL")[1],, .T. , , .F.,, "XZJ_LOCAL",, .F., .T.,, "XZJ_LOCAL"})
@@ -182,14 +172,7 @@ user function PCPM050()
 
    oBrowse:addColumn({FWX3Titulo("ZJ_ENTREGA"), {||aDespes[oBrowse:nAt,nPosEnt]}, GetSx3Cache("ZJ_ENTREGA","X3_TIPO"), pesqPict("SZJ","ZJ_ENTREGA")   , 1, tamSx3("ZJ_ENTREGA")[1] ,tamSx3("ZJ_ENTREGA")[2], .T. , , .F.,, "XZJ_ENTREGA",, .F., .T.,, "XZJ_ENTREGA"})
 
-   oBrowse:aColumns[nPosFor]:XF3 := 'SA2AT'
-   oBrowse:acolumns[nPosFor]:ledit     := .T.
-   oBrowse:acolumns[nPosFor]:cReadVar:= 'aDespes[oBrowse:nAt,nPosFor]'
-   
-   oBrowse:acolumns[nPosLoj]:ledit     := .T.
-   oBrowse:acolumns[nPosLoj]:cReadVar:= 'aDespes[oBrowse:nAt,nPosLoj]'
-
-   oBrowse:aColumns[nPosPro]:XF3 := BF3Pro
+   oBrowse:aColumns[nPosPro]:XF3 := 'SB1'
    oBrowse:acolumns[nPosPro]:ledit     := .T.
    oBrowse:acolumns[nPosPro]:cReadVar:= 'aDespes[oBrowse:nAt,nPosPro]'
 
@@ -236,8 +219,6 @@ description Controle de inclusão dos arrays
 @return variant, return_description
 /*/
 Static function posIncLine()
-    aDespes[ oBrowse:nAt , oBrowse:GetColByID("XZJ_FORNECE"):nOrder ] := space( tamSx3( "ZJ_FORNECE" )[1]        )
-    aDespes[ oBrowse:nAt , oBrowse:GetColByID("XZJ_LOJA"):nOrder ]    := space( tamSx3( "ZJ_LOJA" )[1]        )
     aDespes[ oBrowse:nAt , oBrowse:GetColByID("XZJ_PRODUTO"):nOrder ] := space( tamSx3( "ZJ_PRODUTO" )[1]        )
     aDespes[ oBrowse:nAt , oBrowse:GetColByID("XZJ_LOCAL"):nOrder ]   := space( tamSx3( "ZJ_LOCAL" )[1]        )
     aDespes[ oBrowse:nAt , oBrowse:GetColByID("XZJ_SALDO"):nOrder ]   := 0
@@ -266,9 +247,6 @@ description Calculo das Celulas
 /*/
 static function PM050VLD()
    Local nPos:= oBrowse:ColPos()
-   IF nPos = nPosFor
-      adespes[oBrowse:nAt][nPosloj] := Posicione("SA2",1,xFilial("SA2")+adespes[oBrowse:nAt][nPosFor],'A2_LOJA' )
-   ENDIF
 
    IF nPos = nPosLoc  // Posiciona na coluna Local ( Armazem ) dispara os calculos 
       adespes[oBrowse:nAt][nPosSLD] := Posicione("SB2",1,xFilial("SB2")+adespes[oBrowse:nAt][nPosPro]+adespes[oBrowse:nAt][nPosLoc],'B2_QATU' )
@@ -355,9 +333,6 @@ Static Function PM050GRAVA()
             IF SZJ->( !dbSeek(xFilial("SZJ")+Alltrim(adespes[AB][nPosFor])+Alltrim(adespes[AB][nPosLoj])+Alltrim(adespes[AB][nPosPro])+Alltrim(adespes[AB][nPosLoc]+Dtos(dDatabase) ),.T. ) )
                      IF RecLock("SZJ",.T.)
                            SZJ->ZJ_FILIAL       :=    xFilial("SZJ")
-                           SZJ->ZJ_DATA         :=    dDataBase
-                           SZJ->ZJ_FORNECE      :=    adespes[AB][nPosFor]
-                           SZJ->ZJ_LOJA         :=    adespes[AB][nPosLoj]
                            SZJ->ZJ_PRODUTO      :=    adespes[AB][nPosPro]
                            SZJ->ZJ_LOCAL        :=    adespes[AB][nPosloc]
                            SZJ->ZJ_SALDO        :=    adespes[AB][nPosSLD]
@@ -373,6 +348,7 @@ Static Function PM050GRAVA()
                            SZJ->ZJ_SIMUDIA      :=    adespes[AB][nPosSMD]
                            SZJ->ZJ_DURA         :=    adespes[AB][nPosDUR]
                            SZJ->ZJ_ENTREGA      :=    adespes[AB][nPosEnt]
+                           SZJ->ZJ_DATA         :=    dDataBase
 
                         MsUnlock()
                      ENDIF 
@@ -434,34 +410,14 @@ description Valida a existencia do Fornecedor, Produto e a Amarração
 @param nOpc, numeric, param_description
 @return variant, return_description
 /*/
-Static Function PM050CPO(nOpc)
+Static Function PM050CPO(cProduto)
   Local cArea       := FWGetArea()
   Local lRet        := .T.
-  Local cFornece    := adespes[oBrowse:nAt][nPosFor]
-  Local cLoja       := adespes[oBrowse:nAt][nPosLoj]
-  Local cProduto    := adespes[oBrowse:nAt][nPosPro]
-
-      if nOpc = 1
-         dbSelectArea("SA2")
-         SA2->( dbSetOrder(1))
-         if SA2->( !dbSeek( xFilial("SA2")+cFornece+cLoja,.T.))
-                  lRet        := .F.
-                  MsgAlert( " Esse Fornecedor nao existe no cadastro")
-         Endif
-      else
-         dbSelectArea("SB1")
-         SB1->( dbSetOrder(1) )
-         IF SB1->( !dbSeek( xFilial("SB1")+cProduto,.T. ))   
+  dbSelectArea("SB1")
+  SB1->( dbSetOrder(1) )
+  IF SB1->( !dbSeek( xFilial("SB1")+cProduto,.T. ))   
                   lRet        := .F.
                   MsgAlert( " Esse Produto nao existe no cadastro")
-         Endif
-         dbSelectArea("SA5")
-         SA5->( dbSetOrder(1) )
-         if SA5->( !dbSeek( xFilial("SA5")+cFornece+cLoja+cProduto,.T.))
-                   lRet        := .F.
-                   adespes[oBrowse:nAt][nPosPro]:= space( tamSx3( "ZJ_PRODUTO" )[1])
-                  MsgAlert( " Esse Produto nao está amarrado com o Fornecedor")
-         Endif
-      Endif   
+  Endif
   FWRestArea(cArea)    
 RETURN(lRet)
