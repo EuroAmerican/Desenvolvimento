@@ -40,6 +40,11 @@ Local _cEmail       := SuperGetMv("QE_MLUNEXP",.F.,"fabio.santos@euroamerican.co
 Local nPosProduto   := aScan(aHeader,{|x| AllTrim(x[2])=="C6_PRODUTO"})
 Local nPosQtdVen    := aScan(aHeader,{|x| AllTrim(x[2])=="C6_QTDVEN"})
 
+if ExistBlock("FATVLD01")
+        aParam2:= {M->C5_FILIAL,M->C5_CLIENTE,M->C5_LOJACLI}
+        lRet:= ExecBlock("FATVLD01",.f.,.f.,aParam2)
+endif
+
 If nOpc == 3 
     If M->C5_TIPO == "N"
         If Empty(M->C5_VEND1)
