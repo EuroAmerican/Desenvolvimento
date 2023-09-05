@@ -13,13 +13,8 @@
 @version 1.0
 @Hystory Alterado para tratar projeto comissões 12/02/2022 - Fabio Carneiro 
 @History Ajustado em 09/09/2022 tratamento referente a não considerar comissão se o item estiver zerado - Fabio carneiro dos Santos
-<<<<<<< HEAD
-@return Logical, permite ou nao a mudança de linha- prs - 04/09/2023 - TESTE
-
-=======
 @return Logical, permite ou nao a mudança de linha
-// teste de upload para git
->>>>>>> 91c0c7503fe725909483abe9e84d1d6bf890a324
+
 /*/
 User Function M415GRV()
 
@@ -53,6 +48,15 @@ Local _cTabCom   := ""
 Local _cTipoCom  := ""
 Local cFilComis  := GetMv("QE_FILCOM")
 
+// Politicas Comerciais - QUALY
+Local aMargem    := {}
+Local cLotePrc   := ""
+Local cGrpCliente:= ""
+Local nTotalOrc  := 0
+Local nTotalAdc  := 0
+Local nPercAdc   := 0
+
+
 dDtaEmis    := SCJ->CJ_EMISSAO                                                             // Data de Emissão do Orçamento
 cNumOrc     := SCJ->CJ_NUM                                                                 // Numero do Orçamento
 cPgCliente  := Posicione("SA1",1,xFilial("SA1")+SCJ->CJ_CLIENTE+SCJ->CJ_LOJA,"A1_XPGCOM")  // 1 = Não / 2 = Não
@@ -78,6 +82,7 @@ If cfilAnt $ cFilComis
 	If Select("WK_SCK") > 0
 		WK_SCK->(DbCloseArea())
 	EndIf
+
 	/*-------------------------------------------------------------------------+
 	| Será feito a leitura dos itens do orçamento para as devidas validações   | 
 	+-------------------------------------------------------------------------*/
@@ -99,6 +104,7 @@ If cfilAnt $ cFilComis
 		_cTabCom    := Posicione("SB1",1,xFilial("SB1")+WK_SCK->CK_PRODUTO,"B1_XTABCOM") // Ultimo codigo de tabela cadastrada na tabela PAA
 		_aLidos     := {}  
 		_nLidos     := 0
+
 		/*---------------------------------------------------------+
 		| Se gera financeiro prossegue as validações das comissões |    
 		+---------------------------------------------------------*/
@@ -285,11 +291,18 @@ If cfilAnt $ cFilComis
 			
 			EndIf
 
+			//Projeto de Politias Comerciais - 28/08/2023 - Paulo Rogerio  
+			nTotalOrc  += SCK->CK_VALOR
+			nTotalAdc  += SCK->CK_VALOR * (SCK->CK_XDESADC / 100)
 		EndIf	
 		
 		WK_SCK->(dbSkip())
 
 	EndDo
+
+	//Projeto de Politias Comerciais - 28/08/2023 - Paulo Rogerio  
+	nPercAdc   := iif(nTotalAdc > 0, nTotalAdc / nTotalOrc, 0) * 100
+
 	/*---------------------------------------------------------------------------------+
 	| Será gravado no cabeçalho do orçamento os tipos e os percentuais de comissão     |
 	+---------------------------------------------------------------------------------*/
@@ -354,16 +367,153 @@ If cfilAnt $ cFilComis
 	EndIf
 
 EndIf
+
 _nCliente  := 0
 _nProduto  := 0
 _nVendedor := 0
 //FIM 
+
 If Select("WK_SCK") > 0
 	WK_SCK->(DbCloseArea())
 EndIf
+
 If Select("WK_PAA") > 0
 	WK_PAA->(DbCloseArea())
 EndIf
+
+
+
+/*---------------------------------------------------------------------------------------------+
+| INICIO    : Projeto de Politias Comerciais - 03/07/2023 - Paulo Rogerio                      |
++----------------------------------------------------------------------------------------------+
+| ALTERAÇÃO : Calcular e gravar a Margem de Contribuição do Orçamento de Venda.                |
++----------------------------------------------------------------------------------------------*/
+IF U_xFilPComl() .And. Inclui .OR. Altera 
+
+	dbSelectArea("SA1")
+	dbsetOrder(1)
+	dbSeek(xFilial("SA1")+SCJ->CJ_CLIENT + SCJ->CJ_LOJAENT, .F.)
+
+	cGrpCliente:= Alltrim(SCJ->CJ_XGRPCLI)
+	cLotePrc   := SCJ->CJ_XLTPROC
+
+	IF Empty(cLotePrc)
+		//=========================================================================
+		// [INICIO]
+		// Verifica se existe lote de processamento em aberto, a fim de possibilitar
+		// a agregação do orçamento no mesmo lote.
+		//=========================================================================
+		cQuery := "SELECT DISTINCT * "+ENTER
+		cQuery += " FROM ("+ENTER			
+		cQuery += "       SELECT CJ_XLTPROC"+ENTER
+		cQuery += "	        FROM "+RetSqlName("SCJ")+" AS SCJ WITH(NOLOCK)"+ENTER
+		cQuery += "         WHERE SCJ.D_E_L_E_T_ = ''"+ENTER
+		cQuery += "           AND CJ_FILIAL  = '"+xFilial("SCJ")+"'"+ENTER
+		cQuery += "           AND CJ_VALIDA  >= '"+dtos(dDataBase)+"'"+ENTER
+		cQuery += "           AND CJ_STATUS  IN('A', 'D')"+ENTER
+		cQuery += "           AND CJ_XLTPROC <> ' ' "+ENTER
+		cQuery += "           AND CJ_NUM <> '"+SCJ->CJ_NUM+"'"+ENTER
+		cQuery += "           AND CJ_XGRPCLI = '"+SCJ->CJ_XGRPCLI+"'"+ENTER
+
+		cQuery += "      ) AS QRY"+ENTER 
+
+		IF Select("TMPX")
+			TMPX->(dbCloseArea())
+		Endif
+
+		DbUseArea(.T., "TOPCONN", TCGenQry(,,cQuery), "TMPX", .F., .T.)
+		dbSelectArea("TMPX")
+		dbGotop()
+
+		cLotePrc := ""
+
+		IF !Eof()
+			IF Aviso("Politicas Comerciais", "Deseja adicionar este orçamento ao Lote de Processamento em aberto ("+TMPX->CJ_XLTPROC+")?", {"Sim","Não"}, 1) == 1
+				cLotePrc := TMPX->CJ_XLTPROC
+
+				RecLock('SCJ',.F.)
+				SCJ->CJ_XLTPROC := TMPX->CJ_XLTPROC
+				MsUnlock()
+
+			Endif
+		Endif
+		
+		TMPX->(dbCloseArea())
+
+		//=========================================================================
+		// [FIM]
+		// Verifica se existe lote de processamento em aberto, a fim de possibilitar
+		// a agregação do orçamento no mesmo lote.
+		//=========================================================================
+	Endif
+
+	// Calcula a Margem de Contribuição Individual
+	Processa({|| U_xCalcMargem(@aMargem, SCJ->CJ_CLIENT, SCJ->CJ_LOJAENT, SCJ->CJ_NUM, 1, .T.)}, "Aguarde","Calculando Margem Individual...")
+
+	dbSelectArea("SCJ")
+
+	RecLock('SCJ',.F.)
+	SCJ->CJ_XCUSTO  := aMargem[1]
+	SCJ->CJ_XTOTIMP := aMargem[2]
+	SCJ->CJ_XMCIND  := aMargem[3]
+	SCJ->CJ_XDESGRP := aMargem[4]
+
+	// Desconto Adicional médio do orçamento
+	SCJ->CJ_XDESADC := nPercAdc
+	MsUnlock()
+
+
+	IF SA1->A1_GRPVEN <> ''
+		aMargem := {}
+
+		// Calcula a Margem de Contribuição da Holding
+		Processa({|| U_xCalcMargem(@aMargem, SCJ->CJ_CLIENT, SCJ->CJ_LOJAENT, SCJ->CJ_NUM, 2, .T.)}, "Aguarde","Calculando Margem da Holding...")
+
+		IF aMargem[3] <> 0
+			//=========================================================================
+			// Atualiza a Margem de Contribuição Média em todos os Orçamentos do Grupo
+			//=========================================================================
+			cQuery := "SELECT DISTINCT * "+ENTER
+			cQuery += " FROM ("+ENTER			
+			cQuery += "       SELECT CJ_FILIAL, CJ_NUM, CJ_CLIENT, CJ_LOJAENT"+ENTER
+			cQuery += "	        FROM "+RetSqlName("SCJ")+" AS SCJ WITH(NOLOCK)"+ENTER
+			//cQuery += "	        INNER JOIN "+RetSqlName("SA1")+" AS SA1 ON SA1.D_E_L_E_T_ = '' AND A1_FILIAL = CJ_FILIAL AND A1_COD = CJ_CLIENT AND A1_LOJA = CJ_LOJAENT AND A1_GRPVEN = '"+SA1->A1_GRPVEN+"'"+ENTER
+			cQuery += "         WHERE SCJ.D_E_L_E_T_ = ''"+ENTER
+        	cQuery += "           AND CJ_FILIAL = '"+xFilial("SCJ")+"'"+ENTER
+			cQuery += "           AND CJ_VALIDA >= '"+dtos(dDataBase)+"'"+ENTER
+			cQuery += "           AND CJ_STATUS IN('A','D')"+ENTER
+			cQuery += "           AND CJ_XMCIND <> 0"+ENTER 
+			cQuery += "           AND CJ_XLTPROC = '"+SCJ->CJ_XLTPROC+"'"+ENTER
+		    cQuery += "           AND CJ_XGRPCLI = '"+SCJ->CJ_XGRPCLI+"'"+ENTER
+			cQuery += "      ) AS QRY"+ENTER 
+
+			IF Select("TMPX")
+				TMPX->(dbCloseArea())
+			Endif
+
+			DbUseArea(.T., "TOPCONN", TCGenQry(,,cQuery), "TMPX", .F., .T.)
+			dbSelectArea("TMPX")
+			dbGotop()
+
+			Do While !Eof()
+				dbSelectArea("SCJ")
+				dbSetOrder(1)
+				dbSeek(xFilial("SCJ")+TMPX->CJ_NUM)
+
+				IF Found()
+					RecLock('SCJ',.F.)
+					SCJ->CJ_XMCGRP  := aMargem[3]
+					SCJ->CJ_XDESGRP := aMargem[4]					
+					MsUnlock()
+				Endif
+
+				dbSelectArea("TMPX")
+				dbSkip()
+			Enddo
+		Endif
+	Endif
+Endif
+
 RestArea(aAreaCK)
 RestArea(aAreaCJ)
 RestArea(aAreaB1)

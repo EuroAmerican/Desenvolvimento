@@ -10,10 +10,11 @@
 #define ENTER CHR(13) + CHR(10)
 
 User Function MA410MNU
-	aadd(aRotina,{'Altera Entrega' , 'U_X410ENTG', 0 , 3, 0, Nil})
-	aAdd(aRotina,{'Importar Pedido', 'U_FATM025' , 0 , 3, 0, Nil})
-	aAdd(aRotina,{'Historico do PV', 'U_MFAT001' , 0 , 4, 0, Nil})
-
+	aadd(aRotina,{'Altera Entrega'  , 'U_X410ENTG'  , 0 , 3, 0, Nil})
+	//aAdd(aRotina,{'Importar Pedido', 'U_FATM025("SC5")' , 0 , 3, 0, Nil})
+	aAdd(aRotina,{'Historico do PV' , 'U_MFAT001'   , 0 , 4, 0, Nil})
+	aAdd(aRotina,{'Historico do Orc', 'U_QEMA415HI' , 0 , 9, 0, Nil})
+	aAdd(aRotina,{'Estorna Liber'   , 'U_QEMA410ES' , 0 , 9, 0, Nil})
 Return
 
 //Altera data entrega
@@ -72,7 +73,7 @@ If Empty(SC5->C5_NOTA) .And. lOkUsr
 				dbSetOrder(1)
 				dbSeek(xFilial("SC6") + SC5->C5_NUM)
 
-				While !EOF("SC6") .And. SC6->C6_NUM == SC5->C5_NUM
+				While !SC6->(EOF()) .And. SC6->C6_NUM == SC5->C5_NUM
 
 					If Empty(SC6->C6_NOTA)
 						dbSelectArea("SC6")
@@ -94,8 +95,7 @@ If Empty(SC5->C5_NOTA) .And. lOkUsr
 				dbSetOrder(1)
 				dbSeek(xFilial("SC9") + SC5->C5_NUM)
 
-				While !EOF("SC9") .And. SC9->C9_PEDIDO == SC5->C5_NUM
-
+				While !SC9->(EOF()) .And. SC9->C9_PEDIDO == SC5->C5_NUM
 					If Empty(SC9->C9_NFISCAL)
 						//MsgStop(SC9->C9_PEDIDO + " " + SC9->C9_PRODUTO + " " + DTOC(SC9->C9_DATENT))
 						dbSelectArea("SC9")

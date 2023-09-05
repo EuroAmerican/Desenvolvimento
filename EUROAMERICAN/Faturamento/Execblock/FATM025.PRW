@@ -3,6 +3,11 @@
 #include "topconn.ch"
 #include "tbiconn.ch"
 #include "tryexception.ch"
+#INCLUDE "FWLIBVERSION.CH"
+
+
+//#INCLUDE'TOTVS.CH'
+
 
 #define ENTER		CHR(13) + CHR(10)
 
@@ -24,9 +29,10 @@
 ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
 /*/
-User Function FATM025()
+User Function FATM025(cTipo)
 
 Local lRet		:= .T.
+Local aArea     := GetArea()
 
 Local cArqUsr	:= ""
 Local cArqXml	:= "TEMP\DICICO_" + DtoS( dDataBase ) + "_" + U_NewAlias() + ".XML"
@@ -36,10 +42,15 @@ Local cWarning 	:= ""
 
 Local cMsg		:= ""
 Local nX        := 0
+Local cNumPV    := ""
 
+Private aHeader := {}
 Private aCabec	:= {}
 Private aItens	:= {}
 Private cItens	:= "01"
+Private nUsado  := 0
+Private lMsErroAuto := .F.
+Private lFatM025 := .T.
 
 Private oXML	:= Nil
 
@@ -105,22 +116,70 @@ Begin Sequence
 			Break
 		EndIF
 
+		// Recupera o indice por código.
+		SA1->(dbSetOrder(1))
+
 		aCabec := {}
 		aItens := {}
 
-		aCabec := {	{"C5_TIPO" 			,"N"											,Nil},;
-					{"C5_CLIENTE"		,SA1->A1_COD	                            	,Nil},;
-					{"C5_LOJACLI"		,SA1->A1_LOJA 									,Nil},;
-					{"C5_LOJAENT"		,SA1->A1_LOJA 									,Nil},;
-					{"C5_U_REQUI"		,"N"                                			,Nil},;
-					{"C5_ENTREG"		,dDatabase+5									,Nil},;
-					{"C5_EMISSAO"		,dDatabase										,Nil},;
-					{"C5_MOEDA"			,1												,Nil},;
-					{"C5_TIPLIB"		,"1"											,Nil},;
-					{"C5_TPCARGA"		,"2"											,Nil},;
-					{"C5_TIME"			,DtoC(Date()) + "-" + Time()					,Nil},;
-					{"C5_PEDCLI"		,xPedCli		     							,Nil},;
-					{"C5_INCLUI"		,cUserName										,Nil}}
+
+		IF cTipo == "SC5"
+			aCabec := {	{"C5_TIPO" 			,"N"											,Nil},;
+						{"C5_CLIENTE"		,SA1->A1_COD	                            	,Nil},;
+						{"C5_LOJACLI"		,SA1->A1_LOJA 									,Nil},;
+						{"C5_LOJAENT"		,SA1->A1_LOJA 									,Nil},;
+						{"C5_U_REQUI"		,"N"                                			,Nil},;
+						{"C5_ENTREG"		,dDatabase+5									,Nil},;
+						{"C5_EMISSAO"		,dDatabase										,Nil},;
+						{"C5_MOEDA"			,1												,Nil},;
+						{"C5_TIPLIB"		,"1"											,Nil},;
+						{"C5_TPCARGA"		,"2"											,Nil},;
+						{"C5_TIME"			,DtoC(Date()) + "-" + Time()					,Nil},;
+						{"C5_PEDCLI"		,xPedCli		     							,Nil},;
+						{"C5_INCLUI"		,cUserName										,Nil}}
+		Else
+			aCabec := {	{"CJ_CLIENTE"		,SA1->A1_COD	                            	,Nil},;
+						{"CJ_LOJA"		    ,SA1->A1_LOJA 									,NIL},; //U_fTrigger()
+						{"CJ_NOMCLI "		,SA1->A1_NOME	                            	,Nil},;
+						{"CJ_CLIENT"		,SA1->A1_COD	                            	,Nil},;
+						{"CJ_NOMCLI "		,SA1->A1_NOME	                            	,Nil},;
+						{"CJ_EMISSAO"		,dDataBase 									    ,Nil},; 
+						{"CJ_MOEDA"			,1												,Nil},;
+						{"CJ_TIPLIB"		,"1"								 			,Nil},;
+						{"CJ_TXMOEDA"		,1 								 			    ,Nil},;
+						{"CJ_XPEDCLI"		,xPedCli		     							,Nil},;
+						{"CJ_TPCARGA"		,"2"											,Nil},; 						
+						{"CJ_TRANSP"		,IIF(!Empty(SA1->A1_TRANSP), SA1->A1_TRANSP, "000001") ,Nil},;
+						{"CJ_OBS"  			,"PEDIDO DE COMPRA "+xPedCli			 		,Nil},;
+						{"CJ_TIPOCLI"		,SA1->A1_TIPO	                            	,Nil}}
+
+			//--------------------------------------------------------------
+			// Cria / Alimenta array necessário para utilização das funções 
+			// padrão de inicialização dos campos no SCK.
+			//--------------------------------------------------------------
+			/*
+			dbSelectArea("SX3")
+			dbSetOrder(1)
+			dbSeek("SCK")      
+
+			While !EOF() .And. X3_ARQUIVO == "SCK"
+				IF X3Uso(X3_USADO) .And. X3_NIVEL > 0
+					nUsado++
+					aAdd(aHeader,{ TRIM(X3Titulo()) ,;
+					X3_CAMPO    ,;
+					X3_PICTURE  ,;
+					X3_TAMANHO  ,;
+					X3_DECIMAL  ,;
+					X3_VALID    ,;
+					X3_USADO    ,;
+					X3_TIPO     ,;
+					X3_ARQUIVO  ,;
+					X3_CONTEXT  })
+				Endif
+				dbSkip()
+			End
+			*/
+		Endif
 
 		oItemP := XmlChildEx(oXML:_PEDIDO, '_ITENS')
 
@@ -135,7 +194,7 @@ Begin Sequence
 					xQtde		:= Val(oItemP:_ITEM[nX]:_QUANTIDADE_PEDIDA:TEXT)
 					xPrcUnt		:= Val(oItemP:_ITEM[nX]:_VALOR_UNITARIO_PRODUTO_BRUTO:TEXT)
 
-					fAddSC6(xIteCli, xCodBar, xDescri, xQtde, xPrcUnt)
+					fAddSC6(xIteCli, xCodBar, xDescri, xQtde, xPrcUnt, cTipo)
 				Next nX
 
 			Else
@@ -145,30 +204,39 @@ Begin Sequence
 				xQtde		:= Val(oItemP:_ITEM:_QUANTIDADE_PEDIDA:TEXT)
 				xPrcUnt		:= Val(oItemP:_ITEM:_VALOR_UNITARIO_PRODUTO_BRUTO:TEXT)
 
-				fAddSC6(xIteCli, xCodBar, xDescri, xQtde, xPrcUnt)
+				fAddSC6(xIteCli, xCodBar, xDescri, xQtde, xPrcUnt, cTipo)
 			EndIf
 
 			If Len(aItens) > 0
+				//dbSelectArea("SCJ")
 
 				lMsErroAuto := .F.
-				MSExecAuto({|x,y,z| Mata410(x,y,z)}, aCabec, aItens, 3)
+				IF cTipo == "SC5"
+					MSExecAuto({|x,y,z| Mata410(x,y,z)}, aCabec, aItens, 3)
+				Else
+					//MSExecAuto({|x,y,z| Mata415(x,y,z)}, aCabec, aItens, 3)
+					MATA415(aCabec, aItens, 3) 
+				Endif
 
 				If lMsErroAuto
 					//Verificar política comercial para clientes Dicico A1_PCVIGOR, pedidos Dicico fogem a política padrão.
 					MostraErro()
 				Else
+					//-------------------------------------------
+					// Grava Percentuais de Desconto do cliente
+					//-------------------------------------------
+					cNumPV := U_xUpdItmOrc(xPedCli, SA1->A1_COD, SA1->A1_LOJA, cTipo)
 
 					cMsg := "Operação efetuada com sucesso! " + ENTER
-					cMsg += "Pedido de Venda " + SC5->C5_NUM + "." + ENTER
+					IF cTipo == "SC5"
+						cMsg += "Pedido de Venda " + cNumPV+ "." + ENTER
+					ELSE
+						cMsg += "Orçamento de Venda " + cNumPV + "." + ENTER
+					Endif
 
-					If !lMsErroAuto
-						MsgInfo(cMsg, "Pedidos de Vendas")
-					Else
-						MsgStop("Houve erro na Geração do Pedido!", "Pedidos de Vendas")
-					EndIf
+					MsgInfo(cMsg, "Pedidos de Vendas")
 
 				EndIf
-
 			EndIf
 
 		Else
@@ -195,6 +263,8 @@ If Select("QRY") > 0
 	QRY->(dbCloseArea())
 EndIf
 
+RestArea(aArea)
+
 Return( lRet )
 
 
@@ -211,26 +281,40 @@ Return( lRet )
 ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
 /*/
-Static Function fAddSC6(xIteCli, xCodBar, xDescri, xQtde, xPrcUnt)
+Static Function fAddSC6(xIteCli, xCodBar, xDescri, xQtde, xPrcUnt, cTipo)
 Local cQry		:= ""
 //Local cC6OPER	:= ""
 
 BEGIN SEQUENCE
-
-	cQry := " SELECT	C6_NUM PEDIDO " 								+ ENTER
-	cQry += " FROM	" + RetSqlName("SC6")								+ ENTER
-	cQry += " WHERE		D_E_L_E_T_ = '' " 								+ ENTER
-	cQry += " 			AND C6_FILIAL = '" + xFilial("SC6") + "'"		+ ENTER
-	cQry += " 			AND C6_NUMPCOM = '" + xPedCli + "'" 			+ ENTER
-	cQry += " 			AND C6_ITEMPC = '" + xIteCli + "'" 				+ ENTER
-	cQry += " 			AND C6_CLI = '" + SA1->A1_COD + "'" 			+ ENTER
-	cQry += " 			AND C6_LOJA = '" + SA1->A1_LOJA + "'" 			+ ENTER
+	//Verifica se o item do pedido de venda já foi incluido antes.
+	IF cTipo == "SC5"
+		cQry := " SELECT C6_NUM PEDIDO " 								    + ENTER
+		cQry += "   FROM	" + RetSqlName("SC6") + " AS SC6 WITH(NOLOCK)"	+ ENTER
+		cQry += "  WHERE D_E_L_E_T_ = '' " 								    + ENTER
+		cQry += " 	 AND C6_FILIAL = '" + xFilial("SC6") + "'"		        + ENTER
+		cQry += "  	 AND C6_NUMPCOM = '" + xPedCli + "'" 			        + ENTER
+		cQry += " 	 AND C6_ITEMPC = '" + xIteCli + "'" 				    + ENTER
+		cQry += " 	 AND C6_CLI = '" + SA1->A1_COD + "'" 			        + ENTER
+		cQry += " 	 AND C6_LOJA = '" + SA1->A1_LOJA + "'" 			        + ENTER
+	Else
+		IF !empty(xPedCli)
+			cQry := " SELECT CK_NUM PEDIDO " 								    + ENTER
+			cQry += "   FROM	" + RetSqlName("SCK") + " AS SCK WITH(NOLOCK)"	+ ENTER
+			cQry += "  WHERE D_E_L_E_T_ = '' " 								    + ENTER
+			cQry += " 	 AND CK_FILIAL = '" + xFilial("SCK") + "'"		        + ENTER
+			cQry += "  	 AND CK_PEDCLI  = '" + xPedCli + "'" 			        + ENTER
+			cQry += " 	 AND CK_ITECLI  = '" + xIteCli + "'" 				    + ENTER
+			cQry += " 	 AND CK_CLIENTE = '" + SA1->A1_COD + "'" 			    + ENTER
+			cQry += " 	 AND CK_LOJA = '" + SA1->A1_LOJA + "'" 			        + ENTER
+		Endif
+	Endif
 
 	If Select("QRY") > 0
 		QRY->(dbCloseArea())
 	EndIf
 
 	TCQUERY cQry NEW ALIAS QRY
+
 
 	If QRY->( !EoF() )
 		Aviso("Pedido de Vendas", "O pedido do cliente " + xPedCli + " / " + xIteCli + " já foi processado no pedido: " + QRY->PEDIDO, {"Ok"}, 3)
@@ -250,9 +334,7 @@ BEGIN SEQUENCE
 	nDivisor := xQtde
 
 	If Subs(SB1->B1_GRUPO, 1, 1) == "3" .And. SB1->B1_UM $ "GL#PT"
-
 		Do Case
-
 			Case SB1->B1_UM == "GL"
 				nDivisor := 4
 
@@ -261,38 +343,39 @@ BEGIN SEQUENCE
 
 			Otherwise
 				nDivisor := 12
-
 		EndCase
-
 	EndIf
 
 	xQtde		:= xQtde-(xQtde%nDivisor)
 
 	If xQtde > 0
-
-		//cC6OPER := "500"
-		//cC6TES := U_FATX013O( SA1->A1_COD, SA1->A1_LOJA, SB1->B1_COD, /*cC6OPER,*/ "N" ,"","","","","","", SA1->A1_CONTRIB)
 		cC6TES := "501"
 
-		aAdd(aItens,{	{"C6_ITEM"    ,cItens			,Nil},;
-		           		{"C6_PRODUTO" ,SB1->B1_COD		,Nil},;
-		  		   		{"C6_DESCRI"  ,SB1->B1_DESC		,Nil},;
-		           		{"C6_UM"      ,SB1->B1_UM		,Nil},;
-				   		{"C6_QTDVEN"  ,xQtde			,Nil},;
-				   		{"C6_TES"     ,cC6TES			,Nil},;
-				   		{"C6_OPER"    , "01"            , Nil},;
-		           		{"C6_LOCAL"   ,"08"				,Nil},;
-				   		{"C6_PRCVEN"  ,xPrcUnt			,Nil},;
-		           		{"C6_NUMPCOM" ,xPedCli			,Nil},;
-				   		{"C6_ITEMPC"  ,xIteCli			,Nil}	})
+		IF cTipo == "SC5"
+			aAdd(aItens,{	{"C6_ITEM"    ,cItens			,Nil},;
+							{"C6_PRODUTO" ,SB1->B1_COD		,Nil},; //{"C6_DESCRI"  ,SB1->B1_DESC		,Nil},;
+							{"C6_QTDVEN"  ,xQtde			,Nil},; // {"C6_UM"      ,SB1->B1_UM		,Nil},;
+							{"C6_PRCVEN"  ,xPrcUnt			,Nil},; // {"C6_TES"     ,cC6TES			,Nil},;
+							{"C6_OPER"    ,"01"            , Nil},;
+							{"C6_LOCAL"   ,"08"				,Nil},;
+							{"C6_NUMPCOM" ,xPedCli			,Nil},;
+							{"C6_ITEMPC"  ,xIteCli			,Nil}})
+		Else
 
-		//Teste
-		//MsgInfo("Item: " + cItens + " Prod: " + RTrim(SB1->B1_COD) + " Desc: "+SB1->B1_DESC+" Um: " + SB1->B1_UM + " Qtde: "+" Oper: " + xQtde + " Oper: "+cC6OPER +" TES: " + cC6TES + " PrcUn: "+" Ped + Item: " + xPedCli + " " + xIteCli)
-		//MsgInfo(" Prod: " + RTrim(SB1->B1_COD) )
-
-
+			aAdd(aItens,{	{"CK_ITEM"    ,cItens			,Nil},;
+							{"CK_PRODUTO" ,SB1->B1_COD		,Nil},;
+							{"CK_QTDVEN"  ,xQtde       	    ,.F.},; 					
+							{"CK_PRCVEN"  ,xPrcUnt			,.F.},;
+							{"CK_VALOR"   ,xPrcUnt	* xQtde ,.F.},;
+							{"CK_OPER"    ,"01"   	        ,Nil},; 			   		
+							{"CK_LOCAL"   ,"08"				,Nil},;
+							{"CK_PEDCLI"  ,xPedCli			,Nil},; //{"CK_CULTRA"  ,Padr(AllTrim(Str(qOrig)), 10)	,Nil},;
+							{"CK_XDTRVC"  ,dDataBase		,Nil},;							
+							{"CK_XORGDES" ,"D"		        ,Nil},;							
+							{"CK_ITECLI"  ,xIteCli			,Nil}})
+		Endif
+ 
 		cItens := Soma1(cItens, 2)
-
 	Else
 		MsgInfo("O produto " + RTrim(SB1->B1_COD) + " - " + RTrim(SB1->B1_DESC) + " não será incluído no pedido por nao atender a política de múltiplos.")
     EndIf
@@ -302,5 +385,108 @@ END SEQUENCE
 Return
 
 
+/*
+| Função...: xUpdItmOr()
+| Autor....: Paulo Rogerio
+| Data.....: 21/06/2023
+| Retorno..: Nenhum
+| Descricão: Calcula e Atualiza o Desconto adicional nos itens
+|            do orçamento após importção do XML.
+|
+| Observac.: 
+| Objetivo.: 
+| Documentação: Projeto de Politicas Comerciais - QUALY
+|
+| Data       Programador    Alteração
+| -------------------------------------------------------------------------
+| -------------------------------------------------------------------------
+*/
+User  Function xUpdItmOrc(cPedCli, cCliente, cLoja, cTipo)
+Local cQry    := ""
+Local cNumOrc := ""
+Local nDescto := 0
+Local nDescAdc:= 0
 
+	//Verifica se o item do pedido de venda já foi incluido antes.
+	IF cTipo == "SC5"
+		cQry := " SELECT  TOP 1 C6_NUM PEDIDO " 								    + ENTER
+		cQry += "   FROM	" + RetSqlName("SC6") + " AS SC6 WITH(NOLOCK)"	+ ENTER
+		cQry += "  WHERE D_E_L_E_T_ = '' " 								    + ENTER
+		cQry += " 	 AND C6_FILIAL = '" + xFilial("SC6") + "'"		        + ENTER
+		cQry += "  	 AND C6_NUMPCOM = '" + cPedCli + "'" 			        + ENTER
+		cQry += " 	 AND C6_CLI = '" + cCliente + "'" 			        + ENTER
+		cQry += " 	 AND C6_LOJA = '" + cLoja + "'" 			        + ENTER
+	Else
+		IF !empty(xPedCli)
+			cQry := " SELECT  TOP 1 CK_NUM PEDIDO " 								    + ENTER
+			cQry += "   FROM	" + RetSqlName("SCK") + " AS SCK WITH(NOLOCK)"	+ ENTER
+			cQry += "  WHERE D_E_L_E_T_ = '' " 								    + ENTER
+			cQry += " 	 AND CK_FILIAL = '" + xFilial("SCK") + "'"		        + ENTER
+			cQry += "  	 AND CK_PEDCLI  = '" + cPedCli + "'" 			        + ENTER
+			cQry += " 	 AND CK_CLIENTE = '" + cCliente + "'" 			    + ENTER
+			cQry += " 	 AND CK_LOJA = '" + cLoja+ "'" 			        + ENTER
+		Endif
+	Endif
+
+	If Select("QRY") > 0
+		QRY->(dbCloseArea())
+	EndIf
+
+	TCQUERY cQry NEW ALIAS QRY
+
+	dbSelectArea("QRY")
+
+	cNumOrc := PEDIDO
+	
+	//-------------------------------------------
+	// Grava Percentuais de Desconto do cliente
+	//-------------------------------------------
+	dbSelectArea("SCJ")
+	dbSetOrder(1)
+	dbSeek(xFilial("SCJ")+cNumOrc)
+
+	dbSelectArea("SCK")
+	dbSetOrder(1)
+	dbSeek(xFilial("SCK")+SCJ->(CJ_NUM))
+
+	nDescto := 0
+	Do While CK_FILIAL+CK_NUM == xFilial("SCK")+SCJ->(CJ_NUM) .And. !Eof()
+		nDescAdc := 0
+
+		Reclock("SCK", .F.)
+
+		IF SCK->CK_PRUNIT > SCK->CK_PRCVEN
+			nDescAdc := ((SCK->CK_PRUNIT / SCK->CK_PRCVEN) - 1) * 100
+
+			nDescto := Max(nDescto, nDescAdc) 
+
+			Reclock("SCK", .F.)
+			SCK->CK_XDESADC := nDescAdc
+			SCK->CK_XJUSADC := IIF(nDescAdc > 0, "O", "")
+			SCK->CK_XOBSADC := IIF(nDescAdc > 0, "OBTIDO NO PC DO CLIENTE", "")
+			SCK->CK_XORGDES := "D"
+		Else
+			SCK->CK_XORGDES := "A"
+		Endif
+
+		MsUnlock()
+
+		dbskip()
+	Enddo
+
+	//----------------------------------------------------------
+	// Grava / Atualiza Percentuais de Desconto do Cabeçalho
+	//----------------------------------------------------------
+	dbSelectArea("SCJ")
+
+	Reclock("SCJ", .F.)
+	IF nDescto > 0
+		SCJ->CJ_XDESADC := nDescto
+		SCJ->CJ_XJUSADC := "O"
+		SCJ->CJ_XOBSADC := "** OBTIDO VIA IMPORTAÇÃO DO PC XML DO CLIENTE **"
+	Endif
+
+	U_QEPCG01()
+	MsUnlock()
+Return(cNumOrc)
 

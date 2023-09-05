@@ -7,17 +7,20 @@
 
 #DEFINE ENTER chr(13) + chr(10)
 
-/*/{Protheus.doc} MT410TOK -Valida a inclusão de vendador 
+/*/{Protheus.doc} MT410TOK -Valida a inclusão de vendedor 
 //Rotina visualiza pedido venda
+@type Function
 @author Fabio Carneiro 
 @since 10/05/2020
 @version 1.0
 @return Logical, permite ou nao a mudança de linha
-@History Ajustado fonte para tratar unidade de expedição - 01/03/2022 - Fabio Carneiro 
-@History Ajustado fonte para tratar operações na alteração - 02/08/2022 - Fabio Carneiro 
+@history  01/03/2022, Fabio Carneiro, Ajustado fonte para tratar unidade de expedição   
+@history  02/08/2022, Fabio Carneiro, Ajustado fonte para tratar operações na alteração 
+@history  13/07/2023, Paulo Rogério , Projeto de Politicas Comerciais QUALY - Bloqueio da manutenção de pedidos com objetivo de venda no mercado nacional, pelas empresas Qualy e Phoenix. 
+           
+         
 /*/
 User Function MT410TOK()
-    
 Local _aAreaC5      := SC5->(GetArea())
 Local _aAreaC6      := SC6->(GetArea())
 Local lRet          := .T.				// Conteudo de retorno
@@ -39,6 +42,9 @@ Local _cC5XOPER     := SuperGetMv("QE_XOPER",.F.,"01/06/56")
 Local _cEmail       := SuperGetMv("QE_MLUNEXP",.F.,"fabio.santos@euroamerican.com.br;francisco.assis@euroamerican.com.br")	
 Local nPosProduto   := aScan(aHeader,{|x| AllTrim(x[2])=="C6_PRODUTO"})
 Local nPosQtdVen    := aScan(aHeader,{|x| AllTrim(x[2])=="C6_QTDVEN"})
+Local nPosTes       := aScan(aHeader,{|x| AllTrim(x[2])=="C6_TES"})
+
+Local lGeraFin      := .F. 
 
 If nOpc == 3 
     If M->C5_TIPO == "N"
@@ -67,11 +73,8 @@ EndIf
 //---------------
 
 If nOpc == 3 
-
     If M->C5_TIPO $ "N/D/B"
-
         For _nI := 1 to Len(aCols)
-
             _nRetMod         := 0
             _nQtdVenda       := 0
             _nQtdeEmb        := 0
@@ -81,18 +84,18 @@ If nOpc == 3
             _cDescProduto    := Posicione("SB1",1,xFilial("SB1")+aCols[_nI,nPosProduto],"B1_DESC") 
             _cUnidMedida     := Posicione("SB1",1,xFilial("SB1")+aCols[_nI,nPosProduto],"B1_UM") 
 
+            // [Inicio] Projeto de Politicas Comerciais
+            lGeraFin         := Posicione("SF4",1,xFilial("SF4")+aCols[_nI,nPosTes]    ,"F4_DUPLIC") == "S"
+            // [Fim] Projeto de Politicas Comerciais
+
             If M->C5_XOPER $ _cC5XOPER
-
                 If !Empty(_cUnExpedicao) .And. _nQtdMinima > 0
-
                     _nRetMod         := MOD(aCols[_nI,nPosQtdVen],_nQtdMinima)
                     _nQtdVenda       := (aCols[_nI,nPosQtdVen]-_nRetMod)
                     _nQtdeEmb        := (_nQtdVenda/_nQtdMinima)
-
                 EndIf 
 
                 If Empty(_cUnExpedicao) .Or. _nQtdMinima == 0
-
                     _cMsgA := "Existem podutos que está sem unidade de expedição(B1_XUNEXP) e a quantidade minima de embalagem(B1_XQTDEXP) no cadastro do produto  "+ ENTER
                     _cMsgA += "Verificar com os responsaveis da EXPEDIÇÃO, LABORATORIO e OPERAÇÕES para fazer o preenchimento correto destas informações." + ENTER
                     _cMsgA += "Será necessario clicar no botão cancelar e após o cadastro preenchido poderá incluir ou alterar o pedido novamente !!!"
@@ -106,13 +109,10 @@ If nOpc == 3
 
                     lRet := .F.
                     Exit
-
                 EndIf	
                 
                 If !Empty(_cUnExpedicao) .And. _nQtdMinima > 0
-
                     If aCols[_nI,nPosQtdVen] <>  _nQtdVenda 
-
                         _cMsg := "Favor verificar a quantidade digitada do produto "+Alltrim(aCols[_nI,nPosProduto])+" , "
                         _cMsg += "que está fora do cálculo do minimo de embalagem, foi digitado a quantidade de "+Transform(aCols[_nI,nPosQtdVen], "@E 999,999,999.99")+" ! "+ENTER
                         _cMsg += "Portanto, para a regra do minimo de embalagem deverá alterar a quantidade para "+Transform(If(_nQtdVenda < _nQtdMinima,_nQtdMinima,_nQtdVenda), "@E 999,999,999.99")+" de acordo com o volume e espécie !"+ENTER  
@@ -123,21 +123,14 @@ If nOpc == 3
 
                         lRet      := .F.
                         _lEnvMail := .F.
-
                     EndIf
-
                 EndIf 
-
             EndIf
-
         Next _nI
                     
         If M->C5_XOPER $ _cC5XOPER
-
             If !lRet
-
                 If  _lEnvMail
-
                     _cMensagem:="<h2>Prezados</h2>"
                     _cMensagem+="<p>Os Produtos abaixo <u> estão sem o preenchimento da unidade de medida expedição e embalagem minima!</u></p>"
                     _cMensagem+="<p>"+" "+"</p>"
@@ -150,20 +143,17 @@ If nOpc == 3
                     _cMensagem+="</tr>"
 
                     For _nY := 1 to Len(aCols)
-
                         _cDescProduto    := Posicione("SB1",1,xFilial("SB1")+aCols[_nY,nPosProduto],"B1_DESC") 
                         _cUnidMedida     := Posicione("SB1",1,xFilial("SB1")+aCols[_nY,nPosProduto],"B1_UM") 
                         _cUnExpedicao    := Posicione("SB1",1,xFilial("SB1")+aCols[_nY,nPosProduto],"B1_XUNEXP")
                         _nQtdMinima      := Posicione("SB1",1,xFilial("SB1")+aCols[_nY,nPosProduto],"B1_XQTDEXP") 
 
                         If Empty(_cUnExpedicao) .Or. _nQtdMinima == 0
-
                             _cMensagem+="<tr>"
                             _cMensagem+="<td>"+Alltrim(aCols[_nY,nPosProduto])+"</td>"  
                             _cMensagem+="<td>"+Alltrim(_cDescProduto)+"</td>"
                             _cMensagem+="<td>"+Alltrim(_cUnidMedida)+"</td>"
                             _cMensagem+="</tr>"
-
                         EndIf
 
                     Next _nY
@@ -176,15 +166,10 @@ If nOpc == 3
                     _cMensagem+="<p>Atenciosamente</p>"
 
                     U_CPEmail(_cEmail," ","Os Produtos encontran-se sem o preenchimento nos campos unidade de expedição(B1_XUNEXP) e embalagem minina(B1_XQTDEXP) no cadastro de produtos ",_cMensagem,"",.F.)
-                
                 Endif
-
             EndIf
-
         EndIf
-
     EndIf
-
 EndIf 
 
 //---------------
@@ -192,11 +177,8 @@ EndIf
 //---------------
 
 If nOpc == 4 
-
     If SC5->C5_TIPO $ "N/D/B"
-
         For _nI := 1 to Len(aCols)
-
             _nRetMod         := 0
             _nQtdVenda       := 0
             _nQtdeEmb        := 0
@@ -206,18 +188,19 @@ If nOpc == 4
             _cDescProduto    := Posicione("SB1",1,xFilial("SB1")+aCols[_nI,nPosProduto],"B1_DESC") 
             _cUnidMedida     := Posicione("SB1",1,xFilial("SB1")+aCols[_nI,nPosProduto],"B1_UM") 
 
+            // [Inicio] Projeto de Politicas Comerciais
+            lGeraFin         := Posicione("SF4",1,xFilial("SF4")+aCols[_nI,nPosTes]    ,"F4_DUPLIC") == "S"
+            // [Fim] Projeto de Politicas Comerciais
+
             If M->C5_XOPER $ _cC5XOPER // Alterado para tratar via regmemory - 02/08/2022
 
                 If !Empty(_cUnExpedicao) .And. _nQtdMinima > 0
-
                     _nRetMod         := MOD(aCols[_nI,nPosQtdVen],_nQtdMinima)
                     _nQtdVenda       := (aCols[_nI,nPosQtdVen]-_nRetMod)
                     _nQtdeEmb        := (_nQtdVenda/_nQtdMinima)
-
                 EndIf 
 
                 If Empty(_cUnExpedicao) .Or. _nQtdMinima == 0
-
                     _cMsgA := "Existem podutos que está sem unidade de expedição(B1_XUNEXP) e a quantidade minima de embalagem(B1_XQTDEXP) no cadastro do produto  "+ ENTER
                     _cMsgA += "Verificar com os responsaveis da EXPEDIÇÃO, LABORATORIO e OPERAÇÕES para fazer o preenchimento correto destas informações." + ENTER
                     _cMsgA += "Será necessario clicar no botão cancelar e após o cadastro preenchido poderá incluir ou alterar o pedido novamente !!!"
@@ -231,13 +214,10 @@ If nOpc == 4
 
                     lRet := .F.
                     Exit
-
                 EndIf	
                 
                 If !Empty(_cUnExpedicao) .And. _nQtdMinima > 0
-
                     If aCols[_nI,nPosQtdVen] <>  _nQtdVenda 
-
                         _cMsg := "Favor verificar a quantidade digitada do produto "+Alltrim(aCols[_nI,nPosProduto])+" , "
                         _cMsg += "que está fora do cálculo do minimo de embalagem, foi digitado a quantidade de "+Transform(aCols[_nI,nPosQtdVen], "@E 999,999,999.99")+" ! "+ENTER
                         _cMsg += "Portanto, para a regra do minimo de embalagem deverá alterar a quantidade para "+Transform(If(_nQtdVenda < _nQtdMinima,_nQtdMinima,_nQtdVenda), "@E 999,999,999.99")+" de acordo com o volume e espécie !"+ENTER  
@@ -248,17 +228,12 @@ If nOpc == 4
 
                         lRet      := .F.
                         _lEnvMail := .F.
-
                     EndIf
-
                 EndIf 
-
             EndIf
-
         Next _nI
                     
         If M->C5_XOPER $ _cC5XOPER // Alterado para tratar via regmemory - 02/08/2022
-
             If !lRet
 
                 If  _lEnvMail
@@ -301,16 +276,22 @@ If nOpc == 4
                     _cMensagem+="<p>Atenciosamente</p>"
 
                     U_CPEmail(_cEmail," ","Os Produtos encontran-se sem o preenchimento nos campos unidade de expedição(B1_XUNEXP) e embalagem minina(B1_XQTDEXP) no cadastro de produtos ",_cMensagem,"",.F.)
-                
                 Endif
-
             EndIf
-
         EndIf
-
     EndIf
-
 EndIf 
+
+
+// [Inicio] Projeto de Politicas Comerciais - QUALY
+IF U_xFilPComl() 
+    IF SC5->C5_TIPO == "N" .And. C5_TIPOCLI <> 'X' .And. lGeraFin 
+        MsgAlert("Não é permitido a inclusão de pedido com finalidade de venda por esta rotina. Utilize o orçamento de venda!", "Politicas Comerciais")
+        lRet := .F.
+    Endif
+Endif
+// [Fim] Projeto de Politicas Comerciais - QUALY
+
 
 RestArea(_aAreaC6)
 RestArea(_aAreaC5)

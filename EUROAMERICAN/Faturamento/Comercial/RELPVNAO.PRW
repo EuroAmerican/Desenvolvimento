@@ -86,7 +86,7 @@ Local   cQuery
     cQuery    += "INNER JOIN "+RetSqlName("SA3") + " SA3"  + CRLF 
     cQuery    += "ON C5_VEND1 = A3_COD AND SA3.D_E_L_E_T_ = '' " + CRLF 
     cQuery    += "WHERE SC5.D_E_L_E_T_ = '' AND C5_FILIAL = '"+xFilial("SA1")+"'" + CRLF 
-	cQuery    += "AND C5_XMARGEM = 'NAO' " + CRLF
+	//cQuery    += "AND C5_XMARGEM = 'NAO' " + CRLF
 	cQuery    += "AND C5_NUM>= '"+mv_par03+ "' AND C5_NUM <= '"+mv_par04+ "' " + CRLF
 	cQuery    += "AND C5_EMISSAO >=   '"+DTOS(mv_par01)+ "' AND C5_EMISSAO <=  '"+DTOS(mv_par02)+ "' " + CRLF
 	cQuery    += "GROUP BY C5_FILIAL, C5_LOJACLI ,C5_NUM, C5_CLIENTE, C5_VEND1, C5_EMISSAO,  " + CRLF

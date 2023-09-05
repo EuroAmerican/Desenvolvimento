@@ -579,7 +579,7 @@ dbSeek(xFilial("SA3")+cRepres)
 cEmail   := alltrim(SA3->A3_EMAIL)
 
 // Envia email informativo para o repreentante.
-U_QEMAIL08("paulo.santos@euroamerican.com.br", cCopia, "ANÁLISE DE ORÇAMENTO **TESTE** - "+cHolding+" - Lote:"+cLotePrc, cObserv,,.T.)
+U_xEnvMail("paulo.santos@euroamerican.com.br", cCopia, "ANÁLISE DE ORÇAMENTO **TESTE** - "+cHolding+" - Lote:"+cLotePrc, cObserv,,.T.)
 
 msginfo("** Colocar email do representante e retirar TESTE do Titulo **", "ATENCAO!!!")
 

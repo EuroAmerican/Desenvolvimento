@@ -18,22 +18,35 @@
 ±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
 ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+
+----------------------------------------------------------------------------
+Ateração: Paulo Rogério
+Data....: 06/06/2023
+Projeto.: Politicas Comerciais QUALY
+Objetivo: Ao Invés de grava Pedido de Venda a rotina passa a gravar
+          o Orçemento de Vendas, a fim de submeter o pedido as regras
+		  da policita comercial Qualy.
+-----------------------------------------------------------------------------
 /*/
 
 User Function EQEdiDcc()
 
-Private lPreparado 	:= SELECT("SX6") == 0  	                         //Verifica se ambiente ja esta preparado
+Private lPreparado 	:= SELECT("SX6") == 0  	                          // Verifica se ambiente ja esta preparado
 Private lProcessa  	:= .F.
+Private lShow       := .T.
+Private lHide       := .T.
+
 Private cQuery     	:= ""
-Private cIPFTP     	:= '186.202.119.87'                                // IP de conexão com o FTP...
+Private cIPFTP     	:= '186.202.119.87'                               // IP de conexão com o FTP...
 Private nPortFTP   	:= 21                                             // Porta de conexão com o FTP...
-Private cUsrFTP    	:= 'Qualyvinil'                                     // Usuário para conexão com o FTP...
-Private cPwdFTP    	:= 'QsWdxv2C'                                      // Senha de conexão com o FTP...
+Private cUsrFTP    	:= 'Qualyvinil'                                   // Usuário para conexão com o FTP...
+Private cPwdFTP    	:= 'QsWdxv2C'                                     // Senha de conexão com o FTP...
 
 Private aErros	   	:= {}
 Private aProcs		:= {}
 Private aAlert		:= {}
 
+// Prepara o ambiente para processamento...
 If lPreparado
 	RpcClearEnv()
 	PREPARE ENVIRONMENT EMPRESA "10" FILIAL "0803"
@@ -43,13 +56,21 @@ EndIf
 //³ Se houver conexão com FTP Ok...                              ³
 //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 If IsFTP( { cIPFTP, nPortFTP, cUsrFTP, cPwdFTP} )
-	ConOut( "**** CONEXAO COM O FTP INTEGRATOR DICICO REALIZADO EM "+DtoC(MsDate())+" "+Time()+" ****")
+	fMensagem(.T.,  "Iniciando a Conexão FTP do Integrador Dicicco!")
+
+	// Executa a rotina de Importação do XML via FTP
 	ImpFTP( '\EDI\Dicico\Entrada\', { cIPFTP, nPortFTP, cUsrFTP, cPwdFTP} )
+
+	fMensagem(.T.,  "Finalizando a Conexão FTP do Integrador Dicicco!")
+	
+	// Disconecta o FTP
+	FTPDisconnect()
 Else
-	ConOut( "**** ERRO NA CONEXAO COM O FTP INTEGRATOR DICICO EM "+DtoC(MsDate())+" "+Time()+" ****")
+	fMensagem(lPreparado,  "Erro na Conexão FTP do Integrador Dicicco!", 2)
 EndIf
 
 Return
+
 /*
 ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
 ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
@@ -67,103 +88,83 @@ Return
 ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
 */
-
 Static Function ImpFTP( cPasta, aConexao )
 
-Local lOk        := .F.
-Local lRetorno   := .T.
+//Local lOk        := .F.
+//Local lRetorno   := .T.
 Local nArqs      := 0
 Local aRetDir    := {}
-Local cEndFtp    := aConexao[1]
-Local nPorFtp    := aConexao[2]
-Local cUsuFtp    := aConexao[3]
-Local cSenFtp    := aConexao[4]
+//Local cEndFtp    := aConexao[1]
+//Local nPorFtp    := aConexao[2]
+//Local cUsuFtp    := aConexao[3]
+//Local cSenFtp    := aConexao[4]
 
 //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
-//³ Retorna arquivos conforme filtro do diretório...                      ³
+//³ Retorna arquivos conforme filtro do diretório IN no servidor FTP      ³
 //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 FTPDirChange( '/IN/' )
 aRetDir := FTPDIRECTORY( "*.xml" )
 
 If Len(aRetDir) > 0
-
 	For nArqs := 1 To Len( aRetDir )
 
-		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
-		//³ Efetua o download de arquivos EDI conforme a variavel cArquivo...     ³
-		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		// Seleciona a pasta de origem do arquivo XML no FTP
 		FTPDirChange( '/IN/' )
+
+		// Faz Download do Arquivo XML via FTP
 		If !FtpDownload( cPasta + aRetDir[nArqs][1], aRetDir[nArqs][1])
-			ConOut( "**** ERRO DOWNLOAD ARQUIVO "+Alltrim(aRetDir[nArqs][1])+" FTP INTEGRATOR DICICO EM "+DtoC(MsDate())+" "+Time()+" ****")
+			fMensagem(lPreparado,  "Erro no Download do Arquivo: "+Alltrim(aRetDir[nArqs][1])+", no FTP do Integrador Dicicco!", 2)			
 		Else
+			fMensagem(lHide,  "Sucesso no Download do Arquivo "+Alltrim(aRetDir[nArqs][1])+", no FTP do Integrador Dicicco!", 1)
 
-			ConOut( "**** DOWNLOAD ARQUIVO "+Alltrim(aRetDir[nArqs][1])+" FTP INTEGRATOR DICICO REALIZADO EM "+DtoC(MsDate())+" "+Time()+" ****")
-
-			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
-			//³ Apagar arquivo do FTP após efetuar o download...                      ³
-			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			// Apaga o arquivo XML na pasta IN do Servidor FTP
 			FtpErase( AllTrim(aRetDir[nArqs][1]) )
-			ConOut( "**** EXCLUSÃO ARQUIVO "+Alltrim(aRetDir[nArqs][1])+" FTP PASTA IN INTEGRATOR DICICO REALIZADO EM "+DtoC(MsDate())+" "+Time()+" ****")
 
-			If U_EQPVDcc(cPasta + aRetDir[nArqs][1])
+			fMensagem(lHide,  "Exclusão do Arquivo "+Alltrim(aRetDir[nArqs][1])+", na pasta IN do FTP do Integrador Dicicco!", 1)
 
-				ConOut( "**** PEDIDO DE VENDA INSERIDO ARQUIVO "+Alltrim(aRetDir[nArqs][1])+" FTP INTEGRATOR DICICO EM "+DtoC(MsDate())+" "+Time()+" ****")
 
+			//=========================================================
+			// Chama a rotina de Inclusão do pedido de Venda no SC5/SC6
+			//=========================================================
+			If U_EQPVDcc(cPasta + aRetDir[nArqs][1], "SCJ")
+				fMensagem(lPreparado,  "Pedido de Venda Incluido pelo arquivo "+Alltrim(aRetDir[nArqs][1])+", do FTP do Integrador Dicicco!", 2)	
 			
-				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
-				//³ Transfere arquivo para pasta processado    			                  ³
-				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				// Transfere arquivo para pasta processados...    			                
 				Copy File &(cPasta + aRetDir[nArqs][1]) TO &('\EDI\Dicico\Processado\' +  aRetDir[nArqs][1])
-
-				ConOut( "**** ARQUIVO "+Alltrim(aRetDir[nArqs][1])+" MOVIDO PARA O DIRETORIO PROCESSADOS EM "+DtoC(MsDate())+" "+Time()+" ****")
-
-				FTPDirChange( '/Importados/' )
-				If FTPUpload(cPasta + aRetDir[nArqs][1] , aRetDir[nArqs][1] )
-
-					ConOut( "**** ARQUIVO "+Alltrim(aRetDir[nArqs][1])+" MOVIDO PARA DIRETORIO IMPORTADOS DO FTP INTEGRATOR DICICO EM "+DtoC(MsDate())+" "+Time()+" ****")
-
-				Else
-					ConOut( "**** ERRO AO MOVER O ARQUIVO "+Alltrim(aRetDir[nArqs][1])+" PARA O DIRETORIO IMPORTADOS EM "+DtoC(MsDate())+" "+Time()+" ****")
-				EndIf
-				
-				IF FErase(cPasta + aRetDir[nArqs][1]) == -1
-					ConOut( "**** ERRO NA EXCLUSÃO DO ARQUIVO "+Alltrim(aRetDir[nArqs][1])+" DO DIRETORIO ENTRADA EM "+DtoC(MsDate())+" "+Time()+" ****")
-				Else
-					ConOut( "**** EXCLUSÃO DO ARQUIVO "+Alltrim(aRetDir[nArqs][1])+" DO DIRETORIO ENTRADA REALIZADO EM "+DtoC(MsDate())+" "+Time()+" ****")
-				EndIf
-
+				fMensagem(lHide,  "Arquivo "+Alltrim(aRetDir[nArqs][1])+" foi movido para a pasta processados no FTP do Integrador Dicicco!", 2)	
 			Else
+				//ConOut( "**** ERRO NA INCLUSÃO DO PEDIDO DE VENDA DO ARQUIVO "+Alltrim(aRetDir[nArqs][1])+" EM "+DtoC(MsDate())+" "+Time()+" ****")
+				fMensagem(lPreparado,  "Erro na Inclusao do Pedido de Venda pelo Arquivo "+Alltrim(aRetDir[nArqs][1])+".", 2)	
 
-				ConOut( "**** ERRO NA INCLUSÃO DO PEDIDO DE VENDA DO ARQUIVO "+Alltrim(aRetDir[nArqs][1])+" EM "+DtoC(MsDate())+" "+Time()+" ****")
-				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
-				//³ Transfere arquivo para pasta processado    			                  ³
-				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				// Transfere arquivo para pasta de erros    			               
 				Copy File &(cPasta + aRetDir[nArqs][1]) TO &('\EDI\Dicico\Erros\' +  aRetDir[nArqs][1])
+				fMensagem(lHide,  "Arquivo "+Alltrim(aRetDir[nArqs][1])+" foi movido para a pasta erros no FTP do Integrador Dicicco!", 2)	
+			EndIf
 
-				ConOut( "**** ARQUIVO "+Alltrim(aRetDir[nArqs][1])+" MOVIDO PARA O DIRETORIO ERROS EM "+DtoC(MsDate())+" "+Time()+" ****")
-
-				FTPDirChange( '/Importados/' )
-				If FTPUpload(cPasta + aRetDir[nArqs][1] , aRetDir[nArqs][1] )	
-					ConOut( "**** ARQUIVO "+Alltrim(aRetDir[nArqs][1])+" MOVIDO PARA O DIRETORIO IMPORTADOS EM "+DtoC(MsDate())+" "+Time()+" ****")
-				Else
-					ConOut( "**** ERRO AO MOVER ARQUIVO "+Alltrim(aRetDir[nArqs][1])+" PARA O DIRETORIO IMPORTADOS FTP INTEGRATOR DICICO EM "+DtoC(MsDate())+" "+Time()+" ****")
-				EndIF
-
-				IF FErase(cPasta + aRetDir[nArqs][1]) == -1
-					ConOut( "**** ERRO NA EXCLUSÃO DO ARQUIVO "+Alltrim(aRetDir[nArqs][1])+" DO DIRETORIO ENTRADA EM "+DtoC(MsDate())+" "+Time()+" ****")
-				Else
-					ConOut( "**** EXCLUSÃO DO ARQUIVO "+Alltrim(aRetDir[nArqs][1])+" DO DIRETORIO ENTRADA REALIZADO EM "+DtoC(MsDate())+" "+Time()+" ****")
-				EndIf
-
+			// Configura a pasta de importados no FTP
+			FTPDirChange( '/Importados/' )
+			If FTPUpload(cPasta + aRetDir[nArqs][1] , aRetDir[nArqs][1] )
+				fMensagem(lHide,  "Arquivo "+Alltrim(aRetDir[nArqs][1])+"foi movido para a pasta importados no FTP do Integrador Dicicco!", 2)	
+			Else
+				fMensagem(lHide,  "Erro ao mover o Arquivo "+Alltrim(aRetDir[nArqs][1])+" para a pasta importados no FTP do Integrador Dicicco!", 2)	
+			EndIf
+			
+			// Exclusão do arquivo da pasta de entrada do protheus.
+			IF FErase(cPasta + aRetDir[nArqs][1]) == -1
+				fMensagem(lHide,  "Erro na exclusao do Arquivo "+Alltrim(aRetDir[nArqs][1])+" do diretorio de entrada "+cPasta + aRetDir[nArqs][1], 2)	
+			Else
+				fMensagem(lHide,  "Arquivo "+Alltrim(aRetDir[nArqs][1])+" Ecluido do diretorio de entrada "+cPasta + aRetDir[nArqs][1], 2)	
 			EndIf
 		EndIf
 	Next
 Else
-	ConOut( "**** NENHUM ARQUIVO ENCONTRADO FTP INTEGRATOR DICICO EM "+DtoC(MsDate())+" "+Time()+" ****")
+	//ConOut( "**** NENHUM ARQUIVO ENCONTRADO FTP INTEGRATOR DICICO EM "+DtoC(MsDate())+" "+Time()+" ****")
+	fMensagem(lPreparado,  "Nenhum arquivo foi encontrado no FTP INTEGRATOR DICICO.", 2)	
 EndIf
 
-ConOut( "**** FTP INTEGRATOR DICICO DESCONECTADO EM "+DtoC(MsDate())+" "+Time()+" ****")
-FTPDisconnect()
+//ConOut( "**** FTP INTEGRATOR DICICO DESCONECTADO EM "+DtoC(MsDate())+" "+Time()+" ****")
+//fMensagem(lHide,  "Finalizando o processo no FTP INTEGRATOR DICICO.", 2)	
+//FTPDisconnect()
 
 If Len(aErros) > 0 .Or. Len(aProcs) > 0 
 	EnvRel()
@@ -215,6 +216,7 @@ Static Function EnvRel()
 
 Local oProc
 Local oHtml
+Local nX := 0
 
 oProc 	:= TWFProcess():New("100100","Notificação Integração Dicico")
 oProc:NewTask('Inicio',"\workflow\html\EQNotDcc.html")
@@ -320,6 +322,8 @@ End
 
 Return
 
+
+
 User Function EQEdiMn()
 
 If Left(cFilAnt,2) == '08' //.And. Left(cFilAnt,2) == '03'
@@ -327,7 +331,17 @@ If Left(cFilAnt,2) == '08' //.And. Left(cFilAnt,2) == '03'
 Else
 	MsgStop("Empresa não autorizada a utilizar essa rotina.", "Atenção")
 EndIf
+Return
 
 
-
+Static Function fMensagem(lOculta, cMsg, nTipo)
+	IF lOculta
+		ConOut("Data / Hora:"+DtoC(MsDate())+" / "+Time() + " *** "+UPPER(cMsg)+ " ***")
+	Else
+		IF nTipo == 1
+			MsgInfo(cMsg,"Importação de PV")
+		Else
+			MsgAlert(cMsg,"Importação de Orçamento")
+		Endif
+	Endif
 Return

@@ -13,7 +13,7 @@
 User Function mfatv02()
 	Local aSays    := {}
 	Local aButtons := {}
-	Local nOpca    := 1
+	Local nOpca    := {}
 	Local U_FATUSX1 := {}
 	Local cTitoDlg := "Visulizar Liberação de pedidos"
 	Local cPerg    := "MFAT002"
@@ -235,7 +235,7 @@ User Function mfatv2ok()
 	cQuery += "AND A1_EST NOT IN ('" + MV_PAR11 + "') "+CRLF
 	cQuery += "AND SC5.D_E_L_E_T_ = ' ' "+CRLF
 	
-	cQuery += "AND SC5.C5_XMARGEM != 'NAO' "+CRLF// Ajustado Fabio Batista 07/12/2020 bloqueio margem 
+	//cQuery += "AND SC5.C5_XMARGEM != 'NAO' "+CRLF// Ajustado Fabio Batista 07/12/2020 bloqueio margem 
 	
 	cQuery += "ORDER BY C9_FILIAL, C9_PEDIDO"+CRLF//Ajustado Fabio Batista  
 

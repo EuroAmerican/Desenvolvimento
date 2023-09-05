@@ -252,7 +252,7 @@ User Function mfat02ok()
 	cQuery += "AND A1_EST NOT IN ('" + MV_PAR11 + "') "+CRLF
 	cQuery += "AND SC5.D_E_L_E_T_ = ' ' "+CRLF
 	
-	cQuery += "AND SC5.C5_XMARGEM != 'NAO' "+CRLF// Ajustado Fabio Batista 07/12/2020 bloqueio margem 
+	//cQuery += "AND SC5.C5_XMARGEM != 'NAO' "+CRLF// Ajustado Fabio Batista 07/12/2020 bloqueio margem 
 	
 //	cQuery += "ORDER BY C9_FILIAL, C6_ENTREG, C9_PEDIDO, C9_ITEM, C9_SEQUEN"+CRLF
 	//cQuery += "ORDER BY C9_FILIAL, C9_PEDIDO, C6_ENTREG, C9_ITEM, C9_SEQUEN"+CRLF

@@ -49,7 +49,8 @@ Local cFilComis     := GetMv("QE_FILCOM")
 // Tratamento do peso liquido e peso bruto 01/07/2022 - Fabio Carneiro 
 Local _nPesoLiq     := 0
 Local _nPesoBru     := 0
-
+Local lFoundSB1 	:= .F.
+Local lVldPoliticas := .F.
 
 If cModulo=="LOJ"  //  Se For loja nao executa = MAA 01/11/2021
 	Return _lRet
@@ -63,13 +64,12 @@ While TMP1->(!EOF())
     DbSelectArea("SB1")
     DbSetOrder(1)
     If DbSeek(xFilial("SB1")+TMP1->CK_PRODUTO)
-
-        _cUnExpedicao    := Posicione("SB1",1,xFilial("SB1")+TMP1->CK_PRODUTO,"B1_XUNEXP")
-        _nQtdMinima      := Posicione("SB1",1,xFilial("SB1")+TMP1->CK_PRODUTO,"B1_XQTDEXP") 
-        _cDescProduto    := Posicione("SB1",1,xFilial("SB1")+TMP1->CK_PRODUTO,"B1_DESC") 
-        _cUnidMedida     := Posicione("SB1",1,xFilial("SB1")+TMP1->CK_PRODUTO,"B1_UM") 
-		_nPesoLiq        := Posicione("SB1",1,xFilial("SB1")+TMP1->CK_PRODUTO,"B1_PESO") 
-		_nPesoBru        := Posicione("SB1",1,xFilial("SB1")+TMP1->CK_PRODUTO,"B1_PESBRU") 
+		_cUnExpedicao    := SB1->B1_XUNEXP 	//Posicione("SB1",1,xFilial("SB1")+TMP1->CK_PRODUTO,"B1_XUNEXP")
+		_nQtdMinima      := SB1->B1_XQTDEXP 	//Posicione("SB1",1,xFilial("SB1")+TMP1->CK_PRODUTO,"B1_XQTDEXP") 
+		_cDescProduto    := SB1->B1_DESC 	//Posicione("SB1",1,xFilial("SB1")+TMP1->CK_PRODUTO,"B1_DESC") 
+		_cUnidMedida     := SB1->B1_UM 		//Posicione("SB1",1,xFilial("SB1")+TMP1->CK_PRODUTO,"B1_UM")
+		_nPesoLiq        := SB1->B1_PESO 	//Posicione("SB1",1,xFilial("SB1")+TMP1->CK_PRODUTO,"B1_PESO") 
+		_nPesoBru        := SB1->B1_PESBRU 	//Posicione("SB1",1,xFilial("SB1")+TMP1->CK_PRODUTO,"B1_PESBRU") 
 
         If !Empty(_cUnExpedicao) .And. _nQtdMinima > 0
             _nRetMod         := MOD(TMP1->CK_QTDVEN,_nQtdMinima)
@@ -125,9 +125,38 @@ While TMP1->(!EOF())
 
     EndIf 
 
-    TMP1->(dbSkip())
+	/*---------------------------------------------------------------------------------------------+
+	| INICIO    : Projeto de Politias Comerciais - 21/06/2023 - Paulo Rogerio                      |
+	+----------------------------------------------------------------------------------------------+
+	| ALTERAÇÃO : Obrigar a digitação da justificativo e observação NO ITEM do orçamento, quando   |
+	|             houver desconto adicional informado.                                             |
+	+----------------------------------------------------------------------------------------------*/
+	IF U_xFilPComl() .And. !lVldPoliticas
+		//dbSelectArea("TMP1")
+		IF !Empty(TMP1->CK_XDESADC) .AND. (Empty(TMP1->CK_XJUSADC) .OR. Empty(TMP1->CK_XOBSADC))
+			Aviso("Politicas Comerciais - A415TDOK ","O campo de Justificativo ou Observação do desconto adicional não foi preenchido para um ou mais itens. Corrija antes de Continuar!", {"Ok"}, 2)
 
+			_lRet := .F.
+			lVldPoliticas := .T.
+		Endif
+	Endif
+
+    TMP1->(dbSkip())
 EndDo
+
+/*---------------------------------------------------------------------------------------------+
+| INICIO    : Projeto de Politias Comerciais - 21/06/2023 - Paulo Rogerio                      |
++----------------------------------------------------------------------------------------------+
+| ALTERAÇÃO : Obrigar a digitação da justificativo e observação no CABEÇALHO do orçamento,     |
+|             quando houver desconto adicional informado.                                      |
++----------------------------------------------------------------------------------------------*/
+IF U_xFilPComl() .And. !lVldPoliticas
+	IF !Empty(M->CJ_XDESADC) .AND. (Empty(M->CJ_XJUSADC) .OR. Empty(M->CJ_XOBSADC))
+		Aviso("Politicas Comerciais - A415TDOK ","O campo de Justificativa ou Observação do desconto adicional não foi preenchido no CABEÇALHO do Orçamento. Corrija antes de Continuar!", {"Ok"}, 2)
+		_lRet := .F.
+	Endif
+Endif
+
 /*---------------------------------------------------------------------------------------------+
 | INICIO    : Projeto Comissão especifico QUALY - 31/05/2022 - Fabio Carneiro                  |
 +----------------------------------------------------------------------------------------------+
@@ -141,18 +170,35 @@ EndDo
 |     lar a comissão em 09/09/2022 - Fabio carneiro.                                           |
 +----------------------------------------------------------------------------------------------*/
 If cfilAnt $ cFilComis
+	DbSelectArea("SA1")
+	DbSetOrder(1)
+	dbSeek(xFilial("SA1")+M->CJ_CLIENTE+M->CJ_LOJA)
 
-	cPgCliente  := Posicione("SA1",1,xFilial("SA1")+M->CJ_CLIENTE+M->CJ_LOJA,"A1_XPGCOM")  // 1 = Não / 2 = Não
-	cRepreClt   := Posicione("SA3",1,xFilial("SA3")+M->CJ_VEND1,"A3_XCLT")                 // 1 = Não / 2 = Não
-	cPgvend1    := Posicione("SA3",1,xFilial("SA3")+M->CJ_VEND1,"A3_XPGCOM")               // 1 = Não / 2 = Não
-	cVend1      := Posicione("SA3",1,xFilial("SA3")+M->CJ_VEND1,"A3_COD")                  // Codigo do vendedor Cadastro 
-	_nPercCli   := Posicione("SA1",1,xFilial("SA1")+M->CJ_CLIENTE+M->CJ_LOJA,"A1_XCOMIS1") // Percentual de Comissão no Cliente
-	_cComRev    := Posicione("SB1",1,xFilial("SB1")+TMP1->CK_PRODUTO,"B1_XREVCOM")         // Ultima revsão cadastrada na tabela PAA
-	_cTabCom    := Posicione("SB1",1,xFilial("SB1")+TMP1->CK_PRODUTO,"B1_XTABCOM")         // Ultimo codigo de tabela cadastrada na tabela PAA
+	DbSelectArea("SA3")
+	DbSetOrder(1)
+	dbSeek(xFilial("SA3")+M->CJ_VEND1)
 
 	DbSelectArea("SB1")
 	DbSetOrder(1)
-	If DbSeek(xFilial("SB1")+TMP1->CK_PRODUTO)
+	DbSeek(xFilial("SB1")+TMP1->CK_PRODUTO)
+
+	lFoundSB1 := Found()
+
+	cPgCliente  := SA1->A1_XPGCOM 	//Posicione("SA1",1,xFilial("SA1")+M->CJ_CLIENTE+M->CJ_LOJA,"A1_XPGCOM")   // 1 = Não / 2 = Não
+	_nPercCli   := SA1->A1_XCOMIS1 	//Posicione("SA1",1,xFilial("SA1")+M->CJ_CLIENTE+M->CJ_LOJA,"A1_XCOMIS1")  // Percentual de Comissão no Cliente
+	cRepreClt   := SA3->A3_XCLT 	//Posicione("SA3",1,xFilial("SA3")+M->CJ_VEND1,"A3_XCLT")                  // 1 = Não / 2 = Não
+	cPgvend1    := SA3->A3_XPGCOM 	//Posicione("SA3",1,xFilial("SA3")+M->CJ_VEND1,"A3_XPGCOM")                // 1 = Não / 2 = Não
+	cVend1      := SA3->A3_COD		//Posicione("SA3",1,xFilial("SA3")+M->CJ_VEND1,"A3_COD")                   // Codigo do vendedor Cadastro 
+	_cComRev    := SB1->B1_XREVCOM 	//Posicione("SB1",1,xFilial("SB1")+TMP1->CK_PRODUTO,"B1_XREVCOM")          // Ultima revsão cadastrada na tabela PAA
+	_cTabCom    := SB1->B1_XTABCOM 	//Posicione("SB1",1,xFilial("SB1")+TMP1->CK_PRODUTO,"B1_XTABCOM")          // Ultimo codigo de tabela cadastrada na tabela PAA
+	//_cTipoProd  := SB1->B1_TIPO		//Posicione("SB1",1,xFilial("SB1")+TMP1->CK_PRODUTO,"B1_TIPO")             // Tipo de produto 
+	_cTes       := Posicione("SF4",1,xFilial("SF4")+TMP1->CK_TES,"F4_DUPLIC")               // TES do acols  
+
+
+
+	//DbSelectArea("SB1")
+	//DbSetOrder(1)
+	If lFoundSB1 //DbSeek(xFilial("SB1")+TMP1->CK_PRODUTO)
 
 		If Select("WK_PAA") > 0
 			WK_PAA->(DbCloseArea())
@@ -274,8 +320,10 @@ If cfilAnt $ cFilComis
 
 EndIf 
 
+
 RestArea(_aAreaCK)
 RestArea(_aAreaCJ)
 RestArea(_aAreaB1)
-
 Return _lRet
+
+

@@ -1,6 +1,11 @@
 #include "rwmake.ch"
 #include "PROTHEUS.CH"
 #INCLUDE "topconn.ch"
+#include "Ap5Mail.ch"
+#Include "Tbiconn.ch"
+#Include "parmtype.ch"
+#Include "Colors.ch"
+
 #define ENTER CHR(13) + CHR(10)
 
 /*
@@ -634,3 +639,109 @@ RestArea(_aAreaACY)
 RestArea(_aAreaCK)
 RestArea(_aAreaCJ)
 Return 
+
+/*/{Protheus.doc} QEMAIL08 
+//Função de Envio de e-mail QUALY 
+@author Fabio Carneiro dos Santos 
+@since 09/03/2022
+@version 1.0
+/*/
+
+/*
+| Função...: xEnvMail()
+| Autor....: Paulo Rogerio
+| Data.....: 07/07/2023
+| Retorno..: Nenhum
+| Descricão: Envio de email
+|
+| Observac.: 
+| Objetivo.: 
+| Documentação: Projeto de Politicas Comerciais - QUALY
+|
+| Data       Programador    Alteração
+| -------------------------------------------------------------------------
+| -------------------------------------------------------------------------
+*/
+User Function xEnvMail(cRecebe,cCopia,cAssunto,cMensagem,cFile,lDisplay)
+// PRS ************************** FPrepEnv("10","0803")
+
+Private cServer   := GetMV("MV_RELSERV")
+Private cAccount  := GetMV("MV_RELACNT")
+Private cEnvia    := GetMV("MV_RELACNT")
+Private cPassword := GetMV("MV_RELPSW")
+
+CONNECT SMTP SERVER cServer ACCOUNT cAccount PASSWORD cPassword RESULT lConectou
+
+If lConectou
+	MAILAUTH(cAccount,cPassword)     //Esta função faz a autenticação no servidor
+   If lDisplay
+	   //Alert("Conectado com servidor - " + cServer)
+   Endif
+Else
+	cError := ""
+	GET MAIL ERROR cError
+	If lDisplay
+	   Alert(cError+" no Servidor SMTP")
+	Endif
+Endif
+
+//Procurar e-mail do usuário
+Email  	 := "workflow@qualyvinil.com.br"
+If !Empty(Email)
+	cRem   := "EUROAMERICAN"/*AllTrim(cNomeUsr)*/+" <"+cEnvia+">"
+	If !Email$cRecebe
+		//cCopia := Email 
+		cCopia := Email
+	EndIf
+Else
+	cRem := "QUALYCRYL"/*AllTrim(cNomeUsr)*/+" <"+GetMV("MV_RELFROM")+">"
+	cCopia := "fabio.santos@euroamerican.com.br"
+EndIF
+
+
+If !Empty(cRem)
+	cEnvia := cRem
+EndIf
+
+If !Empty(cFile) 
+   SEND MAIL FROM cEnvia;
+	     TO cRecebe;
+	     CC cCopia ;
+	     SUBJECT cAssunto;
+	     BODY cMensagem;
+         ATTACHMENT cFile;
+	     FORMAT TEXT;
+	     RESULT lEnviado
+Else	     
+	SEND MAIL FROM cEnvia;
+	     TO cRecebe;
+	     CC cCopia ;
+	     SUBJECT cAssunto;
+	     BODY cMensagem;
+	     FORMAT TEXT;
+	     RESULT lEnviado
+Endif	     
+
+If lEnviado
+   If lDisplay  
+	//aviso("Envio E-mail!","Enviado e-mail para analise " + cRecebe,{"OK"})
+   Endif
+
+   Conout("*** Enviado e-mail para analise. ")
+Else
+	GET MAIL ERROR cMensagem 
+	If lDisplay
+	   Alert(cMensagem+":"+cAssunto)
+	Endif                         
+	Return .F.
+Endif
+   
+DISCONNECT SMTP SERVER Result lDisConectou
+
+If lDisConectou
+   If lDisplay
+//	   Alert("Desconectado do servidor - " + cServer)
+   Endif
+Endif
+
+Return  .T.

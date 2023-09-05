@@ -19,6 +19,7 @@ M->C5_TRANSP	:= SCJ->CJ_TRANSP
 M->C5_OBS		:= SCJ->CJ_OBS     
 
 // Atualiza margem no pedido de venda
+/*
     If SCJ->CJ_XMARGEM <> ''
         M->C5_XMARGEM := SCJ->CJ_XMARGEM
     EndIf
@@ -26,5 +27,5 @@ M->C5_OBS		:= SCJ->CJ_OBS
     If SCJ->CJ_XVALMAR > 0 
         M->C5_XVALMAR := SCJ->CJ_XVALMAR
     EndIf 
-
+*/
 Return 
