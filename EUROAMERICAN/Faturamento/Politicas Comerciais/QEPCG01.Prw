@@ -18,7 +18,7 @@
 | -------------------------------------------------------------------------
 | -------------------------------------------------------------------------
 */
-User Function QEPCG01()
+User Function QEPCG01(lDescLog)
 Local aArea     := GetArea()
 Local aAreaSA1  := SA1->(GetArea())
 Local aAreaACY  := ACY->(GetArea())
@@ -27,6 +27,8 @@ Local cPeriodo  := 0
 Private lEnchoi := IIF(ValType(M->CJ_CLIENTE) == "C", .T., .F.)
 Private dEmissao:= ctod('')
 Private cCondPag:= ""
+
+Default lDescLog := .F.
 
 IF !U_xFilPComl()
     Return(.T.)
@@ -56,12 +58,16 @@ Endif
 
 IF Found()
     if lEnchoi
-        M->CJ_XDESSCO  := U_DefPerScor(cPeriodo) // 
-        M->CJ_XDESFIN  := U_DefPerFina(cPeriodo) // 
+        M->CJ_XDESSCO  := U_DefPerScor(cPeriodo)
+        M->CJ_XDESFIN  := U_DefPerFina(cPeriodo)
         //M->CJ_XDESLOG  := U_DefPerLogi(cPeriodo) // Carga Automática Retira em 01.09.2023 p/ solicitação do Eristeu.
-
+ 
         // Atualiza o campo de Total de Desconto
-        M->CJ_DESC1   := M->CJ_XDESSCO + M->CJ_XDESFIN + M->CJ_XDESLOG +  M->CJ_XDESMIX + M->CJ_XDESCF
+        IF lDescLog
+            M->CJ_DESC1   := M->CJ_XDESSCO + M->CJ_XDESFIN + M->CJ_XDESLOG +  M->CJ_XDESMIX + M->CJ_XDESCF
+        Else
+            M->CJ_DESC1   := M->CJ_XDESSCO + M->CJ_XDESFIN +  M->CJ_XDESMIX + M->CJ_XDESCF
+        Endif
 
         // Aplica os descontos de cabecalho e de item
         U_xCalcDesc()    
@@ -70,12 +76,21 @@ IF Found()
         SCJ->CJ_XDESFIN  := U_DefPerFina(cPeriodo)
         //SCJ->CJ_XDESLOG  := U_DefPerLogi(cPeriodo) // Carga Automática Retira em 01.09.2023 p/ solicitação do Eristeu.
 
+
         // Atualiza o campo de Total de Desconto
-        SCJ->CJ_DESC1   := SCJ->CJ_XDESSCO + SCJ->CJ_XDESFIN + SCJ->CJ_XDESLOG +  SCJ->CJ_XDESMIX + SCJ->CJ_XDESCF 
+        IF lDescLog
+            SCJ->CJ_DESC1   := SCJ->CJ_XDESSCO + SCJ->CJ_XDESFIN + SCJ->CJ_XDESLOG +  SCJ->CJ_XDESMIX + SCJ->CJ_XDESCF 
+        Else
+            SCJ->CJ_DESC1   := SCJ->CJ_XDESSCO + SCJ->CJ_XDESFIN + SCJ->CJ_XDESMIX + SCJ->CJ_XDESCF 
+        Endif
 
         // Aplica os descontos de cabecalho e de item
         U_xCalcDesc("SCK")    
     Endif
+
+    If Type("oGetDad") <> "U"
+        oGetDad:oBrowse:Refresh()
+    Endif    
 Endif
 
 RestArea(aArea)
