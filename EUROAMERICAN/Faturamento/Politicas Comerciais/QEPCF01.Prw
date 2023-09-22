@@ -417,6 +417,300 @@ Return()
 
 
 /*
+| Função...: xCalcMCItem()
+| Autor....: Paulo Rogerio
+| Data.....: 18/09/2023
+| Retorno..: Nenhum
+| Parametr.: 1. Cliente, 2.Loja, 3.Orçamento, 4.Tipo [1=Individual, 2=Grupo]
+| Descricão: Funções Genericas do Projeto de Politicas Comerciais.
+| 
+| Observac.: 
+| Objetivo.: 
+| Documentação: Projeto de Politicas Comerciais - QUALY
+|
+| 1 - Função xCalcMCItem - Calculo da Margem de Comtribuição Individual e descontos
+|     do Orçamento do orçamento.
+|
+| Data       Programador    Alteração
+| -------------------------------------------------------------------------
+| -------------------------------------------------------------------------
+*/
+
+
+User Function xCalcMCItem(aRet, cCliente, cLoja, nDocumento, nItem)
+Local _aAreaA1   := SA1->(GetArea())
+Local _aAreaF4   := SA1->(GetArea())
+Local _aAreaB1   := SA1->(GetArea())
+Local _aAreaCJ   := SCJ->(GetArea())
+
+Local nMargem  := 0
+
+
+Local nRecno   := 0
+Local nTotalNF := 0
+Local nTotDesc := 0
+Local nTotMerc := 0
+Local nDescGrp := 0
+
+Local nTotFret := 0
+Local nTotDesp := 0
+Local nTotSegu := 0
+Local nTotImp  := 0
+
+Local nRecLiq  := 0
+Local nCustMed := 0
+Local aRelImp  := {}
+Local aImpostos:= {}
+
+Local nX       := 0
+Local nIdItem  := 0
+
+Local cAlias   := "TMP"
+
+aRelImp    := MaFisRelImp("MT100",{"SF2","SD2"}) // MaFisRelImp("MT100",{"SF2","SD2"})
+
+dbSelectArea("SA1")
+dbsetOrder(1)
+dbSeek(xFilial("SA1")+cCliente + cLoja, .F.)
+
+//----------------------------
+// Analise Individual
+//----------------------------
+If nItem > 0
+	nIdItem   -= 1
+
+	nRecno    := TMP1->(Recno())
+	cAlias    := "TMP1"
+    cCondicao := "TMP1->(Recno()) == nRecno"
+	dbSelectArea("TMP1")
+Else
+	nIdItem   := 0
+	nRecno    := SCK->(Recno())
+	cAlias    := "SCK"
+    dbSetOrder(1)
+    dbSeek(xFilial("SCK")+SCJ->CJ_NUM)
+
+    cCondicao := "!Eof() .And. SCK->CK_FILIAL + SCK->CK_NUM == SCJ->CJ_FILIAL + SCJ->CJ_NUM"
+
+	dbSelectArea("SCK")
+	dbSetOrder(1) // CK_FILIAL, CK_NUM, CK_ITEM, CK_PRODUTO, R_E_C_N_O_, D_E_L_E_T_
+	dbSeek(xFilial("SCK")+nDocumento)
+EndIf
+
+
+Do While !Eof() .And. (cAlias)->(CK_FILIAL + CK_NUM) == xFilial("SCJ")+nDocumento
+	//nNrItens++
+
+	nTotFret := (cAlias)->CK_XVALFRE
+	nTotDesp := (cAlias)->CK_XVALDSP
+	nTotSegu := (cAlias)->CK_XVALSEG	
+
+	nTotalNF := (cAlias)->CK_VALOR
+	nTotDesc := (cAlias)->CK_VALDESC
+	nTotMerc := (cAlias)->(CK_VALOR + CK_VALDESC)
+
+	// Calcula o Custo Médio
+	dbSelectArea("SB2")
+	dbSetOrder(1)
+	dbSeek(xFilial("SB2")+(cAlias)->(CK_PRODUTO + CK_LOCAL))
+
+	// Calcula o Custo Medio do Item no documento
+	nCustMed := (B2_CM1 * (cAlias)->CK_QTDVEN)
+
+	//***************************************************************************************************
+
+	IF MaFisFound("NF")
+		MaFisClear()
+		MaFisEnd()
+	Endif
+
+	IF ! MaFisFound("NF")
+		aFisIni := MaFisIni(cCliente,;		// 1-Codigo Cliente/Fornecedor
+			cLoja,;					// 2-Loja do Cliente/Fornecedor
+			"C",;	                // 3-C:Cliente , F:Fornecedor
+			"N",;			        // 4-Tipo da NF
+			SA1->A1_TIPO,;			// 5-Tipo do Cliente/Fornecedor
+			aRelImp,;				// 6-Relacao de Impostos que suportados no arquivo
+			,;						// 7-Tipo de complemento
+			,;						// 8-Permite Incluir Impostos no Rodape .T./.F.
+			"SB1",;					// 9-Alias do Cadastro de Produtos - ("SBI" P/ Front Loja)
+			"MATA461")				// 10-Nome da rotina que esta utilizando a funcao - MATA461
+	Endif
+
+
+	MAFISALT("NF_UFDEST"  ,SA1->A1_ESTE) //UF do Destinatario
+	MAFISALT("NF_UFORIGEM","SP") 	 //UF de Origem
+	MAFISALT("NF_DESCONTO",nTotDesc) //Valor Total do Deconto
+	MAFISALT("NF_FRETE"   ,nTotFret) //Valor Total do Frete
+	MAFISALT("NF_DESPESA" ,nTotDesp) //Valor Total das Despesas Acessorias
+	MAFISALT("NF_SEGURO"  ,nTotSegu) //Valor Total do Seguro
+	MAFISALT("NF_TOTAL"   ,nTotalNF) //Valor Total da NF
+	MAFISALT("NF_VALMERC" ,nTotMerc) //Total de Mercadorias
+	MAFISALT("NF_NATUREZA",SA1->A1_NATUREZ) //Codigo da natureza a ser gravado nos titulos do ?Financeiro.
+
+
+	//Pega os tratamentos de impostos
+	dbSelectArea("SB1")
+	dbSetOrder(1)
+	DbSeek(xFilial("SB1")+(cAlias)->CK_PRODUTO)
+
+	//Pega os tratamentos de impostos
+	dbSelectArea("SF4")
+	dbSetOrder(1)
+	DbSeek(xFilial("SF4")+(cAlias)->CK_TES)
+
+
+	nIdItem++
+	IF ! MaFisFound("IT", nIdItem)
+		MaFisAdd(   (cAlias)->CK_PRODUTO,;                // 1-Codigo do Produto                 ( Obrigatorio )
+					(cAlias)->CK_TES,;                    // 2-Codigo do TES                     ( Opcional )
+					(cAlias)->CK_QTDVEN,;                 // 3-Quantidade                     ( Obrigatorio )
+					(cAlias)->CK_PRCVEN,;                 // 4-Preco Unitario                 ( Obrigatorio )
+					(cAlias)->CK_VALDESC,;                // 5 desconto
+					"",;                     			  // 6-Numero da NF Original             ( Devolucao/Benef )
+					"",;                    			  // 7-Serie da NF Original             ( Devolucao/Benef )
+					0,;                                   // 8-RecNo da NF Original no arq SD1/SD2
+					nTotFret/nNrItens,;              	  // 9-Valor do Frete do Item         ( Opcional )
+					nTotDesp/nNrItens,;            		  // 10-Valor da Despesa do item         ( Opcional )
+					nTotSegu/nNrItens,;             	  // 11-Valor do Seguro do item         ( Opcional )
+					0,;                                   // 12-Valor do Frete Autonomo         ( Opcional )
+					(cAlias)->CK_VALOR + (cAlias)->CK_VALDESC,;     // 13-Valor da Mercadoria             ( Obrigatorio )
+					0,;                                   // 14-Valor da Embalagem             ( Opcional )
+					0,;                                   // 15-RecNo do SB1
+					0)                                    // 16-RecNo do SF4
+	Else
+		MaFisAlt("IT_QUANT"   ,(cAlias)->CK_QTDVEN   , nIdItem)
+		MaFisAlt("IT_TES"     ,(cAlias)->CK_TES      , nIdItem)
+		MaFisAlt("IT_PRCUNI"  ,(cAlias)->CK_PRCVEN   , nIdItem)
+		MaFisAlt("IT_DESCONTO",(cAlias)->CK_VALDESC  , nIdItem)
+		MaFisAlt("IT_FRETE"   ,nTotFret/nNrItens, nIdItem)
+		MaFisAlt("IT_DESPESA" ,nTotDesp/nNrItens, nInIdItemtem)
+		MaFisAlt("IT_SEGURO"  ,nTotSegu/nNrItens, nIdItem)
+		MaFisAlt("IT_VALMERC",(cAlias)->CK_VALOR + (cAlias)->CK_VALDESC, nIdItem)
+	Endif
+
+	// Efetua o Calculo da Base da Margem 
+	aImpostos := MaFisNfCab()
+
+	// Deduz os Impostos
+	Reclock(cAlias, .F.)
+	For nX := 1 to Len(aImpostos)
+		IF Left(Alltrim(aImpostos[nX][1]), 3) $ "ICM/PS2/CF2"
+			IF aImpostos [nX][5] <> 0
+				nTotImp += aImpostos [nX][5]
+			Endif
+
+		ElseIF Left(Alltrim(aImpostos[nX][1]), 3) $ "IPI"
+			(cAlias)->CK_XVALIPI
+
+		ElseIF Left(Alltrim(aImpostos[nX][1]), 3) $ "ICR"
+			(cAlias)->CK_XVALIST
+		Endif
+	Next
+
+	nRecLiq   := nTotMerc - nTotDesp - nTotFret  - nTotSegu - nTotDesc - nTotImp //nBaseMC := nTotMerc - SCJ->CJ_DESPESA - SCJ->CJ_FRETE - nTotDesc - SCJ->CJ_SEGURO
+	nMargem   := ((nRecLiq - nCustMed) / nRecLiq) * 100
+
+	(cAlias)->CK_XCUSTM  := nCustMed
+	(cAlias)->CK_XMC     := nMargem
+	(cAlias)->CK_XTOTIMP := nTotImp
+	MsUnlock()
+
+	//***************************************************************************************************
+
+	dbSelectArea(cAlias)
+	DbSkip()
+EndDo
+
+
+
+/*
+dbSelectArea(cAlias)
+dbGoto(nRecno)
+
+nItem := 0
+Do While !Eof() .And. (cAlias)->(CK_FILIAL + CK_NUM) == xFilial("SCJ")+cDocumento
+	//Pega os tratamentos de impostos
+	dbSelectArea("SB1")
+	dbSetOrder(1)
+	DbSeek(xFilial("SB1")+(cAlias)->CK_PRODUTO)
+
+	//Pega os tratamentos de impostos
+	dbSelectArea("SF4")
+	dbSetOrder(1)
+	DbSeek(xFilial("SF4")+(cAlias)->CK_TES)
+
+	IF lMsg
+		IncProc()	
+	Endif
+
+	nItem++
+	IF ! MaFisFound("IT", nItem)
+		MaFisAdd(   (cAlias)->CK_PRODUTO,;                     // 1-Codigo do Produto                 ( Obrigatorio )
+					(cAlias)->CK_TES,;                         // 2-Codigo do TES                     ( Opcional )
+					(cAlias)->CK_QTDVEN,;                      // 3-Quantidade                     ( Obrigatorio )
+					(cAlias)->CK_PRCVEN,;                      // 4-Preco Unitario                 ( Obrigatorio )
+					(cAlias)->CK_VALDESC,;                     // 5 desconto
+					"",;                     			  // 6-Numero da NF Original             ( Devolucao/Benef )
+					"",;                    			  // 7-Serie da NF Original             ( Devolucao/Benef )
+					0,;                                   // 8-RecNo da NF Original no arq SD1/SD2
+					nTotFret/nNrItens,;              	  // 9-Valor do Frete do Item         ( Opcional )
+					nTotDesp/nNrItens,;            		  // 10-Valor da Despesa do item         ( Opcional )
+					nTotSegu/nNrItens,;             	  // 11-Valor do Seguro do item         ( Opcional )
+					0,;                                   // 12-Valor do Frete Autonomo         ( Opcional )
+					(cAlias)->CK_VALOR + (cAlias)->CK_VALDESC,;     // 13-Valor da Mercadoria             ( Obrigatorio )
+					0,;                                   // 14-Valor da Embalagem             ( Opcional )
+					0,;                                   // 15-RecNo do SB1
+					0)                                    // 16-RecNo do SF4
+	Else
+		MaFisAlt("IT_QUANT"   ,SCK->CK_QTDVEN   , nItem)
+		MaFisAlt("IT_TES"     ,SCK->CK_TES      , nItem)
+		MaFisAlt("IT_PRCUNI"  ,SCK->CK_PRCVEN   , nItem)
+		MaFisAlt("IT_DESCONTO",SCK->CK_VALDESC  , nItem)
+		MaFisAlt("IT_FRETE"   ,nTotFret/nNrItens, nItem)
+		MaFisAlt("IT_DESPESA" ,nTotDesp/nNrItens, nItem)
+		MaFisAlt("IT_SEGURO"  ,nTotSegu/nNrItens, nItem)
+		MaFisAlt("IT_VALMERC",SCK->CK_VALOR + SCK->CK_VALDESC, nItem)
+	Endif
+
+	dbSelectArea(cAlias)
+	DbSkip()
+EndDo
+*/
+
+/*
+// Efetua o Calculo da Base da Margem 
+aImpostos := MaFisNfCab()
+
+
+// Deduz os Impostos
+For nX := 1 to Len(aImpostos)
+	IF Left(Alltrim(aImpostos[nX][1]), 3) $ "ICM/PS2/CF2"
+		IF aImpostos [nX][5] <> 0
+			nTotImp += aImpostos [nX][5]
+		Endif
+	Endif
+Next
+*/
+
+
+nRecLiq   := nTotMerc - nTotDesp - nTotFret  - nTotSegu - nTotDesc - nTotImp //nBaseMC := nTotMerc - SCJ->CJ_DESPESA - SCJ->CJ_FRETE - nTotDesc - SCJ->CJ_SEGURO
+nMargem   := ((nRecLiq - nCustMed) / nRecLiq) * 100
+
+Aadd(aRet, nCustMed) // Custo Médio do Orçamento
+Aadd(aRet, nTotImp)  // Total de Impostos 
+Aadd(aRet, nMargem)  // Margem de Contribuição
+Aadd(aRet, nDescGrp) // Desconto Médiio do Grupo
+
+RestArea(_aAreaA1)
+RestArea(_aAreaF4)
+RestArea(_aAreaB1)
+RestArea(_aAreaCJ)
+Return()
+
+
+
+/*
 | Função...: xGrvMixCF()
 | Autor....: Paulo Rogerio
 | Data.....: 07/07/2023

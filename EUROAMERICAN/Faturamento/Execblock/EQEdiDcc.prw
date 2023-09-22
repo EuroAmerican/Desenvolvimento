@@ -56,17 +56,17 @@ EndIf
 //³ Se houver conexão com FTP Ok...                              ³
 //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 If IsFTP( { cIPFTP, nPortFTP, cUsrFTP, cPwdFTP} )
-	fMensagem(.T.,  "Iniciando a Conexão FTP do Integrador Dicicco!")
+	fMensagem(.T.,  "Iniciando a Conexão FTP do Integrador por XML!")
 
 	// Executa a rotina de Importação do XML via FTP
 	ImpFTP( '\EDI\Dicico\Entrada\', { cIPFTP, nPortFTP, cUsrFTP, cPwdFTP} )
 
-	fMensagem(.T.,  "Finalizando a Conexão FTP do Integrador Dicicco!")
+	fMensagem(.T.,  "Finalizando a Conexão FTP do Integrador por XML!")
 	
 	// Disconecta o FTP
 	FTPDisconnect()
 Else
-	fMensagem(lPreparado,  "Erro na Conexão FTP do Integrador Dicicco!", 2)
+	fMensagem(lPreparado,  "Erro na Conexão FTP do Integrador por XML!", 2)
 EndIf
 
 Return
@@ -113,40 +113,40 @@ If Len(aRetDir) > 0
 
 		// Faz Download do Arquivo XML via FTP
 		If !FtpDownload( cPasta + aRetDir[nArqs][1], aRetDir[nArqs][1])
-			fMensagem(lPreparado,  "Erro no Download do Arquivo: "+Alltrim(aRetDir[nArqs][1])+", no FTP do Integrador Dicicco!", 2)			
+			fMensagem(lPreparado,  "Erro no Download do Arquivo: "+Alltrim(aRetDir[nArqs][1])+", no FTP do Integrador por XML!", 2)			
 		Else
-			fMensagem(lHide,  "Sucesso no Download do Arquivo "+Alltrim(aRetDir[nArqs][1])+", no FTP do Integrador Dicicco!", 1)
+			fMensagem(lHide,  "Sucesso no Download do Arquivo "+Alltrim(aRetDir[nArqs][1])+", no FTP do Integrador por XML!", 1)
 
 			// Apaga o arquivo XML na pasta IN do Servidor FTP
 			FtpErase( AllTrim(aRetDir[nArqs][1]) )
 
-			fMensagem(lHide,  "Exclusão do Arquivo "+Alltrim(aRetDir[nArqs][1])+", na pasta IN do FTP do Integrador Dicicco!", 1)
+			fMensagem(lHide,  "Exclusão do Arquivo "+Alltrim(aRetDir[nArqs][1])+", na pasta IN do FTP do Integrador por XML!", 1)
 
 
 			//=========================================================
 			// Chama a rotina de Inclusão do pedido de Venda no SC5/SC6
 			//=========================================================
 			If U_EQPVDcc(cPasta + aRetDir[nArqs][1], "SCJ")
-				fMensagem(lPreparado,  "Pedido de Venda Incluido pelo arquivo "+Alltrim(aRetDir[nArqs][1])+", do FTP do Integrador Dicicco!", 2)	
+				fMensagem(lPreparado,  "Pedido de Venda Incluido pelo arquivo "+Alltrim(aRetDir[nArqs][1])+", do FTP do Integrador por XML!", 2)	
 			
 				// Transfere arquivo para pasta processados...    			                
 				Copy File &(cPasta + aRetDir[nArqs][1]) TO &('\EDI\Dicico\Processado\' +  aRetDir[nArqs][1])
-				fMensagem(lHide,  "Arquivo "+Alltrim(aRetDir[nArqs][1])+" foi movido para a pasta processados no FTP do Integrador Dicicco!", 2)	
+				fMensagem(lHide,  "Arquivo "+Alltrim(aRetDir[nArqs][1])+" foi movido para a pasta processados no FTP do Integrador por XML!", 2)	
 			Else
 				//ConOut( "**** ERRO NA INCLUSÃO DO PEDIDO DE VENDA DO ARQUIVO "+Alltrim(aRetDir[nArqs][1])+" EM "+DtoC(MsDate())+" "+Time()+" ****")
 				fMensagem(lPreparado,  "Erro na Inclusao do Pedido de Venda pelo Arquivo "+Alltrim(aRetDir[nArqs][1])+".", 2)	
 
 				// Transfere arquivo para pasta de erros    			               
 				Copy File &(cPasta + aRetDir[nArqs][1]) TO &('\EDI\Dicico\Erros\' +  aRetDir[nArqs][1])
-				fMensagem(lHide,  "Arquivo "+Alltrim(aRetDir[nArqs][1])+" foi movido para a pasta erros no FTP do Integrador Dicicco!", 2)	
+				fMensagem(lHide,  "Arquivo "+Alltrim(aRetDir[nArqs][1])+" foi movido para a pasta erros no FTP do Integrador por XML!", 2)	
 			EndIf
 
 			// Configura a pasta de importados no FTP
 			FTPDirChange( '/Importados/' )
 			If FTPUpload(cPasta + aRetDir[nArqs][1] , aRetDir[nArqs][1] )
-				fMensagem(lHide,  "Arquivo "+Alltrim(aRetDir[nArqs][1])+"foi movido para a pasta importados no FTP do Integrador Dicicco!", 2)	
+				fMensagem(lHide,  "Arquivo "+Alltrim(aRetDir[nArqs][1])+"foi movido para a pasta importados no FTP do Integrador por XML!", 2)	
 			Else
-				fMensagem(lHide,  "Erro ao mover o Arquivo "+Alltrim(aRetDir[nArqs][1])+" para a pasta importados no FTP do Integrador Dicicco!", 2)	
+				fMensagem(lHide,  "Erro ao mover o Arquivo "+Alltrim(aRetDir[nArqs][1])+" para a pasta importados no FTP do Integrador por XML!", 2)	
 			EndIf
 			
 			// Exclusão do arquivo da pasta de entrada do protheus.

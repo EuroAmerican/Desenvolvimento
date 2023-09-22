@@ -80,11 +80,16 @@ Begin Sequence
 	xCodBar		:= ""
 	nVlrTot		:= Val(OXML:_PEDIDO:_VALORES_TOTAIS:_VALOR_TOTAL_PEDIDO:TEXT)
 
-	If nVlrTot < 1000
-		cError := "O Pedido "+xPedCli+" não foi processado pois está abaixo de R$ 1.000,00 "
-		aAdd(aErros,{cArqXML,cError,xPedCli,""})
-		Break	
-	EndIf
+	/*---------------------------------------------------------------
+	  Validação de faturamento mínimo Dicico, retirada em 15/09/2023
+	  por solicitação da Ellen, através do chamado 1123.
+	-----------------------------------------------------------------*/
+
+	//If nVlrTot < 1000
+	//	cError := "O Pedido "+xPedCli+" não foi processado pois está abaixo de R$ 1.000,00 "
+	//	aAdd(aErros,{cArqXML,cError,xPedCli,""})
+	//	Break	
+	//EndIf
 	
 	// Posiciona o cadastro do cliente
 	SA1->(dbSetOrder(3))

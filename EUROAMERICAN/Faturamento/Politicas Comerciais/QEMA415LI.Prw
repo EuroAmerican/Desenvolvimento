@@ -157,6 +157,7 @@ cQuery += "           AND CJ_FILIAL = '"+xFilial("SCJ")+"'"+ENTER
 cQuery += "           AND CJ_VALIDA >= '"+dtos(dDataBase)+"'"+ENTER
 cQuery += "           AND CJ_EMISSAO BETWEEN '"+dtos(vpParEmiDe)+"' AND '"+dtos(vpParEmiAte)+"'"+ENTER
 cQuery += "           AND CJ_CLIENT  BETWEEN '"+vpParCliDe+"' AND '"+vpParCliAte+"'"+ENTER
+cQuery += "           AND CJ_XGRPCLI BETWEEN '"+vpParHolDe+"' AND '"+vpParHolAte+"'"+ENTER
 cQuery += "           AND CJ_NUM     BETWEEN '"+vpParOrcDe+"' AND '"+vpParOrcAte+"'"+ENTER
 cQuery += "           AND CJ_STATUS = 'A'"+ENTER
 cQuery += "         GROUP BY CJ_FILIAL, CJ_XGRPCLI"
@@ -209,6 +210,7 @@ cQuery += "           AND CJ_FILIAL = '"+xFilial("SCJ")+"'"+ENTER
 cQuery += "           AND CJ_VALIDA >= '"+dtos(dDataBase)+"'"+ENTER
 cQuery += "           AND CJ_EMISSAO BETWEEN '"+dtos(vpParEmiDe)+"' AND '"+dtos(vpParEmiAte)+"'"+ENTER
 cQuery += "           AND CJ_CLIENT  BETWEEN '"+vpParCliDe+"' AND '"+vpParCliAte+"'"+ENTER
+cQuery += "           AND CJ_XGRPCLI BETWEEN '"+vpParHolDe+"' AND '"+vpParHolAte+"'"+ENTER
 cQuery += "           AND CJ_NUM     BETWEEN '"+vpParOrcDe+"' AND '"+vpParOrcAte+"'"+ENTER
 cQuery += "           AND CJ_STATUS = 'A'"+ENTER
 
