@@ -60,6 +60,8 @@ Local aImpostos:= {}
 Local nX       := 0
 
 Local cHolding := ""
+Local cObsCusto:= ""
+Local lErrCusto:= .F.
 Local cQuery   := ""
 
 aRelImp    := MaFisRelImp("MT100",{"SF2","SD2"}) // MaFisRelImp("MT100",{"SF2","SD2"})
@@ -68,15 +70,16 @@ dbSelectArea("SA1")
 dbsetOrder(1)
 dbSeek(xFilial("SA1")+cCliente + cLoja, .F.)
 
-IF SA1->A1_GRPVEN <> ''
-	cHolding := SA1->A1_GRPVEN
-Endif
+//IF SA1->A1_GRPVEN <> ''
+//	cHolding := SA1->A1_GRPVEN
+//Endif
 
 //Preenchendo o valor total
 dbSelectArea("SCJ")
 dbSetOrder(1)
 dbSeek(xFilial("SCJ")+nDocumento)
 
+cHolding := SCJ->CJ_XGRPCLI
 cLotePrc := SCJ->CJ_XLTPROC
 
 dbSelectArea("SCK")
@@ -109,10 +112,34 @@ IF nTipo == 1
 		dbSetOrder(1)
 		dbSeek(xFilial("SB2")+SCK->(CK_PRODUTO + CK_LOCAL))
 
+		cObsCusto := StrTran(SCK->CK_OBS, "** CUSTO NEGATIVO **"   , "")
+		cObsCusto := StrTran(cObsCusto  , "** CUSTO INEXISTENTE **", "")
+		lErrCusto := .F.
+
 		// Calcula o Custo Medio do Item no documento
-		nCustMed += (B2_CM1 * SCK->CK_QTDVEN)
+		IF Found()
+			IF B2_CM1 < 0
+				nCustMed += (999 * SCK->CK_QTDVEN) // Força estouro no custo para redução da MC
+				cObsCusto := Alltrim(cObsCusto) + IIF(AT("** CUSTO NEGATIVO **", Alltrim(cObsCusto) )  == 0,  " ** CUSTO NEGATIVO **", "")
+				lErrCusto := .T.
+			Else
+				nCustMed += (B2_CM1 * SCK->CK_QTDVEN)
+			Endif
+		Else
+			nCustMed += (999 * SCK->CK_QTDVEN)    // Força estouro no custo para redução da MC
+			cObsCusto := Alltrim(cObsCusto) + IIF(AT("** CUSTO INEXISTENTE **", Alltrim(cObsCusto) )  == 0,  " ** CUSTO INEXISTENTE **", "")
+			lErrCusto := .T.
+		Endif
 
 		dbSelectArea("SCK")
+		IF 	lErrCusto 
+			IF !Alltrim(SCK->CK_OBS) == Alltrim(cObsCusto)
+				SCK->CK_OBS := 	cObsCusto
+			Endif
+
+			MsgAlert("Produto "+Alltrim(SCK->(CK_PRODUTO))+" com custo negativo ou inexistente. Informe a área responsável!","Politica Comerciais")
+		Endif
+
 		DbSkip()
 	EndDo
 
@@ -168,6 +195,8 @@ IF nTipo == 1
 		Endif
 
 		nItem++
+
+/*		
 		IF ! MaFisFound("IT", nItem)
 			MaFisAdd(   SCK->CK_PRODUTO,;                     // 1-Codigo do Produto                 ( Obrigatorio )
 						SCK->CK_TES,;                         // 2-Codigo do TES                     ( Opcional )
@@ -195,6 +224,35 @@ IF nTipo == 1
 			MaFisAlt("IT_SEGURO"  ,nTotSegu/nNrItens, nItem)
 			MaFisAlt("IT_VALMERC",SCK->CK_VALOR + SCK->CK_VALDESC, nItem)
 		Endif
+*/
+
+		IF ! MaFisFound("IT", nItem)
+			MaFisAdd(   SCK->CK_PRODUTO,;                     // 1-Codigo do Produto                 ( Obrigatorio )
+						SCK->CK_TES,;                         // 2-Codigo do TES                     ( Opcional )
+						SCK->CK_QTDVEN,;                      // 3-Quantidade                     ( Obrigatorio )
+						SCK->CK_PRCVEN,;                      // 4-Preco Unitario                 ( Obrigatorio )
+						SCK->CK_VALDESC,;                     // 5 desconto
+						"",;                     			  // 6-Numero da NF Original             ( Devolucao/Benef )
+						"",;                    			  // 7-Serie da NF Original             ( Devolucao/Benef )
+						0,;                                   // 8-RecNo da NF Original no arq SD1/SD2
+						SCK->CK_XVALFRE,;              	  // 9-Valor do Frete do Item         ( Opcional )
+						SCK->CK_XVALDSP,;            		  // 10-Valor da Despesa do item         ( Opcional )
+						SCK->CK_XVALSEG,;             	  // 11-Valor do Seguro do item         ( Opcional )
+						0,;                                   // 12-Valor do Frete Autonomo         ( Opcional )
+						SCK->CK_VALOR + SCK->CK_VALDESC,;     // 13-Valor da Mercadoria             ( Obrigatorio )
+						0,;                                   // 14-Valor da Embalagem             ( Opcional )
+						0,;                                   // 15-RecNo do SB1
+						0)                                    // 16-RecNo do SF4
+		Else
+			MaFisAlt("IT_QUANT"   ,SCK->CK_QTDVEN   , nItem)
+			MaFisAlt("IT_TES"     ,SCK->CK_TES      , nItem)
+			MaFisAlt("IT_PRCUNI"  ,SCK->CK_PRCVEN   , nItem)
+			MaFisAlt("IT_DESCONTO",SCK->CK_VALDESC  , nItem)
+			MaFisAlt("IT_FRETE"   ,SCK->CK_XVALFRE  , nItem)
+			MaFisAlt("IT_DESPESA" ,SCK->CK_XVALDSP  , nItem)
+			MaFisAlt("IT_SEGURO"  ,SCK->CK_XVALSEG  , nItem)
+			MaFisAlt("IT_VALMERC",SCK->CK_VALOR + SCK->CK_VALDESC, nItem)
+		Endif
 
 		dbSelectArea("SCK")
 		DbSkip()
@@ -215,6 +273,8 @@ Else
 	//----------------------------
 	// Analise por Holding
 	//----------------------------
+
+	/*
 	cQuery := "SELECT DISTINCT * "+ENTER
 	cQuery += " FROM ("+ENTER
 	cQuery += "      SELECT CJ_FILIAL, CJ_NUM, CJ_CLIENT, CJ_LOJAENT,SCJ.R_E_C_N_O_ AS CJ_RECNO, A1_GRPVEN"+ENTER
@@ -227,7 +287,28 @@ Else
 	cQuery += "         AND CJ_XMCIND <> 0"+ENTER 
 	cQuery += "         AND CJ_XLTPROC = '"+cLotePrc+"'"+ENTER
 	cQuery += "      ) AS QRY"+ENTER 
+	*/
 
+	//cQuery := "SELECT DISTINCT * "+ENTER
+	//Query += " FROM ("+ENTER
+
+	cQuery := ''
+	cQuery += "      SELECT CJ_FILIAL, CJ_XGRPCLI,  CJ_NUM, CJ_FRETE, CJ_DESPESA, CJ_SEGURO, CJ_XCUSTO, CJ_XTOTIMP, "+ENTER
+	cQuery += "		        SUM(CK_VALOR)   AS CK_VALOR,  "+ENTER
+	cQuery += "		        SUM(CK_VALDESC) AS CK_VALDESC,  "+ENTER
+	cQuery += "		        SUM(CK_VALOR + CK_VALDESC) AS CK_VALMERC "+ENTER
+	cQuery += "	       FROM "+RetSqlName("SCJ")+" AS SCJ WITH(NOLOCK)"+ENTER
+	cQuery += "	      INNER JOIN "+RetSqlName("SCK")+" AS SCK WITH(NOLOCK) ON SCK.D_E_L_E_T_ = '' AND CK_FILIAL = CJ_FILIAL AND CK_NUM = CJ_NUM"+ENTER
+	cQuery += "       WHERE SCJ.D_E_L_E_T_ = ''"+ENTER
+   	cQuery += "         AND CJ_FILIAL = '"+xFilial("SCJ")+"'"+ENTER
+	cQuery += "         AND CJ_VALIDA >= '"+dtos(dDataBase)+"'"+ENTER
+	cQuery += "         AND CJ_STATUS = 'A'"+ENTER
+	cQuery += "         AND CJ_XMCIND <> 0"+ENTER 
+	cQuery += "         AND CJ_XGRPCLI = '"+cHolding+"'"+ENTER 
+	cQuery += "         AND CJ_XLTPROC = '"+cLotePrc+"'"+ENTER
+	cQuery += "       GROUP BY CJ_FILIAL, CJ_XGRPCLI,  CJ_NUM, CJ_FRETE, CJ_DESPESA, CJ_SEGURO, CJ_XCUSTO, CJ_XTOTIMP"+ENTER 
+
+	//cQuery += "      ) AS QRY"+ENTER 
 	
     IF Select("TMPO")
         TMPO->(dbCloseArea())
@@ -237,24 +318,38 @@ Else
     dbSelectArea("TMPO")
 	dbGotop()
 
-
 	IF lMsg
 		ProcRegua(TMPO->(LastRec() * 10))	
 	Endif
 
 	Do While !Eof()
+		nTotFret += TMPO->CJ_FRETE
+		nTotDesp += TMPO->CJ_DESPESA
+		nTotSegu += TMPO->CJ_SEGURO     
+		nCustMed += TMPO->CJ_XCUSTO
+		nTotImp  += TMPO->CJ_XTOTIMP
+
+		nTotalNF += TMPO->CK_VALOR
+		nTotDesc += TMPO->CK_VALDESC
+		nTotMerc += TMPO->CK_VALMERC
+
+		/*
 		dbSelectArea("SCJ")
 		dbSetOrder(1)
 		dbSeek(xFilial("SCJ")+TMPO->CJ_NUM)
 
 		nTotFret += SCJ->CJ_FRETE
 		nTotDesp += SCJ->CJ_DESPESA
-		nTotSegu += SCJ->CJ_SEGURO     // *** VERIFICAR O VALOR DA VARIALVEL nTotalNF
-
-
-		// Soma os impostos dos orçamentos
+		nTotSegu += SCJ->CJ_SEGURO     
+		nCustMed += SCJ->CJ_XCUSTO
 		nTotImp  += SCJ->CJ_XTOTIMP
 
+		nTotalNF += TMPO->CK_VALOR
+		nTotDesc += TMPO->CK_VALDESC
+		nTotMerc += TMPO->CK_VALMERC
+		*/
+
+		/*
 		dbSelectArea("SCK")
 		dbSetOrder(1) // CK_FILIAL, CK_NUM, CK_ITEM, CK_PRODUTO, R_E_C_N_O_, D_E_L_E_T_
 		dbSeek(xFilial("SCK")+TMPO->CJ_NUM)
@@ -266,17 +361,9 @@ Else
 			nTotDesc += SCK->CK_VALDESC
 			nTotMerc += SCK->(CK_VALOR + CK_VALDESC)
 
-			// Calcula o Custo Médio
-			dbSelectArea("SB2")
-			dbSetOrder(1)
-			dbSeek(xFilial("SB2")+SCK->(CK_PRODUTO + CK_LOCAL))
-
-			// Calcula o Custo Medio do Item no documento
-			nCustMed += (B2_CM1 * SCK->CK_QTDVEN)
-
-			dbSelectArea("SCK")
 			DbSkip()
 		EndDo
+		*/
 
 		dbSelectArea("TMPO")
 		dbSkip()
@@ -284,105 +371,6 @@ Else
 
 	// Calcula o Desconto Médio do Grupo de Orçamento
 	nDescGrp := (1-(nTotalNF / nTotMerc))*100
-
-
-	/*------------------------------------------- COMENTADO EM 28/08/2023 -----------------------------------
-	IF MaFisFound("NF")
-		MaFisClear()
-		MaFisEnd()
-	Endif
-
-	//---------------------------------------------
-	// [INICIO ] - Configura o cabeçalho do array 
-	//---------------------------------------------
-
-	aFisIni := MaFisIni(SA1->A1_COD,;	// 1-Codigo Cliente/Fornecedor
-		SA1->A1_LOJA,;					// 2-Loja do Cliente/Fornecedor
-		"C",;	                		// 3-C:Cliente , F:Fornecedor
-		"N",;			        		// 4-Tipo da NF
-		SA1->A1_TIPO,;					// 5-Tipo do Cliente/Fornecedor
-		aRelImp,;						// 6-Relacao de Impostos que suportados no arquivo
-		,;								// 7-Tipo de complemento
-		,;								// 8-Permite Incluir Impostos no Rodape .T./.F.
-		"SB1",;							// 9-Alias do Cadastro de Produtos - ("SBI" P/ Front Loja)
-		"MATA461")						// 10-Nome da rotina que esta utilizando a funcao - MATA461
-
-			
-	MAFISALT("NF_UFDEST"  ,SA1->A1_ESTE) 	//UF do Destinatario
-	MAFISALT("NF_UFORIGEM","SP")     		//UF de Origem
-	MAFISALT("NF_DESCONTO",nTotDesc) 		//Valor Total do Deconto
-	MAFISALT("NF_FRETE"   ,nTotFret) 		//Valor Total do Frete
-	MAFISALT("NF_DESPESA" ,nTotDesp) 		//Valor Total das Despesas Acessorias
-	MAFISALT("NF_SEGURO"  ,nTotSegu) 		//Valor Total do Seguro
-	MAFISALT("NF_TOTAL"   ,nTotalNF) 		//Valor Total da NF
-	MAFISALT("NF_VALMERC" ,nTotMerc) 		//Total de Mercadorias
-	MAFISALT("NF_NATUREZA",SA1->A1_NATUREZ) //Codigo da natureza a ser gravado nos titulos do ?Financeiro.
-	//---------------------------------------------
-	// [FIM ] - Configura o cabeçalho do array 
-	//---------------------------------------------
-
-	// Posiciona no topo do temporario
-	dbSelectArea("TMPO")
-	dbGotop()
-
-	//---------------------------------------------
-	// [INICIO ] - Configura os Itens do array 
-	//---------------------------------------------
-	Do While !Eof()
-		dbSelectArea("SCJ")
-		dbSetOrder(1)
-		dbSeek(xFilial("SCJ")+TMPO->CJ_NUM)
-
-		dbSelectArea("SCK")
-		dbSetOrder(1) // CK_FILIAL, CK_NUM, CK_ITEM, CK_PRODUTO, R_E_C_N_O_, D_E_L_E_T_
-		dbSeek(xFilial("SCK")+TMPO->CJ_NUM)
-
-		Do While !Eof() .And. SCK->(CK_FILIAL + CK_NUM) == xFilial("SCJ")+SCJ->CJ_NUM
-			//Pega os tratamentos de impostos
-			dbSelectArea("SB1")
-			dbSetOrder(1)
-			DbSeek(xFilial("SB1")+SCK->CK_PRODUTO)
-
-			//Pega os tratamentos de impostos
-			dbSelectArea("SF4")
-			dbSetOrder(1)
-			DbSeek(xFilial("SF4")+SCK->CK_TES)
-
-			IF lMsg
-    			IncProc()
-			Endif		
-
-			nItem++
-
-			MaFisAdd(   SCK->CK_PRODUTO,;                     // 1-Codigo do Produto                 ( Obrigatorio )
-						SCK->CK_TES,;                         // 2-Codigo do TES                     ( Opcional )
-						SCK->CK_QTDVEN,;                      // 3-Quantidade                     ( Obrigatorio )
-						SCK->CK_PRCVEN,;                      // 4-Preco Unitario                 ( Obrigatorio )
-						SCK->CK_VALDESC,;                     // 5 desconto
-						"",;                     			  // 6-Numero da NF Original             ( Devolucao/Benef )
-						"",;                    			  // 7-Serie da NF Original             ( Devolucao/Benef )
-						0,;                                   // 8-RecNo da NF Original no arq SD1/SD2
-						nTotFret/nNrItens,;              	  // 9-Valor do Frete do Item         ( Opcional )
-						nTotDesp/nNrItens,;            		  // 10-Valor da Despesa do item         ( Opcional )
-						nTotSegu/nNrItens,;             	  // 11-Valor do Seguro do item         ( Opcional )
-						0,;                                   // 12-Valor do Frete Autonomo         ( Opcional )
-						SCK->CK_VALOR + SCK->CK_VALDESC,;     // 13-Valor da Mercadoria             ( Obrigatorio )
-						0,;                                   // 14-Valor da Embalagem             ( Opcional )
-						0,;                                   // 15-RecNo do SB1
-						0)                                    // 16-RecNo do SF4
-
-			dbSelectArea("SCK")
-			DbSkip()
-		EndDo
-
-		dbSelectArea("TMPO")
-		dbSkip()
-	Enddo
-	//---------------------------------------------
-	// [FIM ] - Configura os Itens do array 
-	//---------------------------------------------
-
------------------------------------------------------------------- FIM DO COMENTARIO */
 Endif
 
 /*
@@ -421,15 +409,15 @@ Return()
 | Autor....: Paulo Rogerio
 | Data.....: 18/09/2023
 | Retorno..: Nenhum
-| Parametr.: 1. Cliente, 2.Loja, 3.Orçamento, 4.Tipo [1=Individual, 2=Grupo]
+| Parametr.: 1. Cliente, 2.Loja, 3.Orçamento, 4.Item
 | Descricão: Funções Genericas do Projeto de Politicas Comerciais.
 | 
 | Observac.: 
 | Objetivo.: 
 | Documentação: Projeto de Politicas Comerciais - QUALY
 |
-| 1 - Função xCalcMCItem - Calculo da Margem de Comtribuição Individual e descontos
-|     do Orçamento do orçamento.
+| 1 - Função xCalcMCItem - Calcular e gravar a Margem de Contribuição, custo e
+|     impostos do orçamento.
 |
 | Data       Programador    Alteração
 | -------------------------------------------------------------------------
@@ -437,25 +425,32 @@ Return()
 */
 
 
-User Function xCalcMCItem(aRet, cCliente, cLoja, nDocumento, nItem)
+User Function xCalcMCItem(cCliente, cLoja, nDocumento, nItem)
 Local _aAreaA1   := SA1->(GetArea())
 Local _aAreaF4   := SA1->(GetArea())
 Local _aAreaB1   := SA1->(GetArea())
 Local _aAreaCJ   := SCJ->(GetArea())
+Local _aAreaCK   := SCK->(GetArea())
 
 Local nMargem  := 0
-
 
 Local nRecno   := 0
 Local nTotalNF := 0
 Local nTotDesc := 0
 Local nTotMerc := 0
-Local nDescGrp := 0
 
 Local nTotFret := 0
 Local nTotDesp := 0
 Local nTotSegu := 0
 Local nTotImp  := 0
+
+Local nVlrNota := 0
+Local nVlrDesc := 0
+Local nVlrMerc := 0
+
+Local nVlrFret  := 0
+Local nVlrDesp  := 0
+Local nVlrSegu  := 0
 
 Local nRecLiq  := 0
 Local nCustMed := 0
@@ -464,8 +459,22 @@ Local aImpostos:= {}
 
 Local nX       := 0
 Local nIdItem  := 0
+Local nNrItens := 0
 
 Local cAlias   := "TMP"
+Local cObsCusto:= ""
+Local cCondicao:= ""
+Local cDelete  := ""
+
+IF Valtype(M->CJ_FRETE) <> "U"
+	nTotFret :=  M->CJ_FRETE   
+	nTotDesp :=  M->CJ_DESPESA 
+	nTotSegu :=  M->CJ_SEGURO   
+Else
+	nTotFret :=  SCJ->CJ_FRETE   
+	nTotDesp :=  SCJ->CJ_DESPESA 
+	nTotSegu :=  SCJ->CJ_SEGURO  
+Endif
 
 aRelImp    := MaFisRelImp("MT100",{"SF2","SD2"}) // MaFisRelImp("MT100",{"SF2","SD2"})
 
@@ -473,51 +482,104 @@ dbSelectArea("SA1")
 dbsetOrder(1)
 dbSeek(xFilial("SA1")+cCliente + cLoja, .F.)
 
-//----------------------------
-// Analise Individual
-//----------------------------
 If nItem > 0
-	nIdItem   -= 1
+	nIdItem   := nItem 
+	cAlias    := "TMP1"
+    cCondicao := "TMP1->(Recno()) == nRecno .AND. !Eof()"
+	cDelete   := ".not. CK_FLAG"
 
 	nRecno    := TMP1->(Recno())
-	cAlias    := "TMP1"
-    cCondicao := "TMP1->(Recno()) == nRecno"
-	dbSelectArea("TMP1")
-Else
-	nIdItem   := 0
-	nRecno    := SCK->(Recno())
-	cAlias    := "SCK"
-    dbSetOrder(1)
-    dbSeek(xFilial("SCK")+SCJ->CJ_NUM)
 
+	dbSelectArea("TMP1")
+	dbGotop()
+Else
+	nIdItem   := 1
+	cAlias    := "SCK"
     cCondicao := "!Eof() .And. SCK->CK_FILIAL + SCK->CK_NUM == SCJ->CJ_FILIAL + SCJ->CJ_NUM"
+	cDelete   := ".not. Deleted()"
 
 	dbSelectArea("SCK")
 	dbSetOrder(1) // CK_FILIAL, CK_NUM, CK_ITEM, CK_PRODUTO, R_E_C_N_O_, D_E_L_E_T_
-	dbSeek(xFilial("SCK")+nDocumento)
+	dbSeek(xFilial("SCK")+SCJ->CJ_NUM) // dbSeek(xFilial("SCK")+nDocumento)
+
+	nRecno    := SCK->(Recno())
 EndIf
 
+nNrItens  := 0
 
-Do While !Eof() .And. (cAlias)->(CK_FILIAL + CK_NUM) == xFilial("SCJ")+nDocumento
-	//nNrItens++
+nTotalNF := 0
+nTotDesc := 0
+nTotMerc := 0
 
-	nTotFret := (cAlias)->CK_XVALFRE
-	nTotDesp := (cAlias)->CK_XVALDSP
-	nTotSegu := (cAlias)->CK_XVALSEG	
+// Conta registros ativos no orçamento e
+// soma totais.
+Do While &(cCondicao) //!Eof()
+	IF &(cDelete)
+		nNrItens++
 
-	nTotalNF := (cAlias)->CK_VALOR
-	nTotDesc := (cAlias)->CK_VALDESC
-	nTotMerc := (cAlias)->(CK_VALOR + CK_VALDESC)
+		nTotalNF  += (cAlias)->CK_VALOR
+		nTotDesc  += (cAlias)->CK_VALDESC 
+		nTotMerc  += nTotalNF + nTotDesc
+	Endif 
+
+	dbSkip()
+Enddo
+
+dbGoto(nRecno)
+
+Do While &(cCondicao) //!Eof() .And. (cAlias)->(CK_FILIAL + CK_NUM) == xFilial("SCJ")+nDocumento
+	IF ! &(cDelete)
+		// Deduz os Impostos
+		Reclock(cAlias, .F.)
+		(cAlias)->CK_XVALIPI := 0
+		(cAlias)->CK_XVALIST := 0
+
+		(cAlias)->CK_XVALFRE := 0
+		(cAlias)->CK_XVALDSP := 0
+		(cAlias)->CK_XVALSEG := 0	
+
+		(cAlias)->CK_XCUSTM  := 0
+		(cAlias)->CK_XMC     := 0
+		(cAlias)->CK_XTOTIMP := 0
+		MsUnlock()
+
+		dbSkip()
+		Loop
+	Endif 
+
+    //(Valor do produto / Valor total dos produtos) x Valor do frete = Valor do rateio
+	nVlrFret := ((cAlias)->CK_VALOR / nTotalNF) * nTotFret  
+	nVlrDesp := ((cAlias)->CK_VALOR / nTotalNF) * nTotDesp 
+	nVlrSegu := ((cAlias)->CK_VALOR / nTotalNF) * nTotSegu   
+
+	nVlrNota := (cAlias)->CK_VALOR
+	nVlrDesc := (cAlias)->CK_VALDESC
+	nVlrMerc := (cAlias)->(CK_VALOR + CK_VALDESC)
 
 	// Calcula o Custo Médio
 	dbSelectArea("SB2")
 	dbSetOrder(1)
 	dbSeek(xFilial("SB2")+(cAlias)->(CK_PRODUTO + CK_LOCAL))
 
-	// Calcula o Custo Medio do Item no documento
-	nCustMed := (B2_CM1 * (cAlias)->CK_QTDVEN)
+	cObsCusto := StrTran((cAlias)->CK_OBS, "** CUSTO NEGATIVO **"  , "")
+	cObsCusto := StrTran((cAlias)->CK_OBS, "** CUSTO INEXISTENTE **", "")
 
-	//***************************************************************************************************
+	// Calcula o Custo Medio do Item no documento
+	IF Found()
+		nCustMed  := (B2_CM1 * (cAlias)->CK_QTDVEN)
+
+		IF nCustMed < 0
+			cObsCusto := Alltrim(cObsCusto) + IIF(AT("** CUSTO NEGATIVO **", Alltrim(cObsCusto) )  == 0,  " ** CUSTO NEGATIVO **", "")
+		Endif
+	Else
+		nCustMed  := -999
+		cObsCusto := Alltrim(cObsCusto) + IIF(AT("** CUSTO INEXISTENTE **", Alltrim(cObsCusto) )  == 0,  " ** CUSTO INEXISTENTE **", "")
+	Endif
+
+	dbSelectArea("SCK")
+	IF !Alltrim((cAlias)->CK_OBS) == Alltrim(cObsCusto)
+		MsgAlert("Produto "+Alltrim((cAlias)->(CK_PRODUTO))+" com custo negativo ou inexistente. Informe a área responsável!","Politica Comerciais")
+	Endif
 
 	IF MaFisFound("NF")
 		MaFisClear()
@@ -536,7 +598,6 @@ Do While !Eof() .And. (cAlias)->(CK_FILIAL + CK_NUM) == xFilial("SCJ")+nDocument
 			"SB1",;					// 9-Alias do Cadastro de Produtos - ("SBI" P/ Front Loja)
 			"MATA461")				// 10-Nome da rotina que esta utilizando a funcao - MATA461
 	Endif
-
 
 	MAFISALT("NF_UFDEST"  ,SA1->A1_ESTE) //UF do Destinatario
 	MAFISALT("NF_UFORIGEM","SP") 	 //UF de Origem
@@ -559,8 +620,6 @@ Do While !Eof() .And. (cAlias)->(CK_FILIAL + CK_NUM) == xFilial("SCJ")+nDocument
 	dbSetOrder(1)
 	DbSeek(xFilial("SF4")+(cAlias)->CK_TES)
 
-
-	nIdItem++
 	IF ! MaFisFound("IT", nIdItem)
 		MaFisAdd(   (cAlias)->CK_PRODUTO,;                // 1-Codigo do Produto                 ( Obrigatorio )
 					(cAlias)->CK_TES,;                    // 2-Codigo do TES                     ( Opcional )
@@ -570,11 +629,11 @@ Do While !Eof() .And. (cAlias)->(CK_FILIAL + CK_NUM) == xFilial("SCJ")+nDocument
 					"",;                     			  // 6-Numero da NF Original             ( Devolucao/Benef )
 					"",;                    			  // 7-Serie da NF Original             ( Devolucao/Benef )
 					0,;                                   // 8-RecNo da NF Original no arq SD1/SD2
-					nTotFret/nNrItens,;              	  // 9-Valor do Frete do Item         ( Opcional )
-					nTotDesp/nNrItens,;            		  // 10-Valor da Despesa do item         ( Opcional )
-					nTotSegu/nNrItens,;             	  // 11-Valor do Seguro do item         ( Opcional )
+					nVlrFret,;              	          // 9-Valor do Frete do Item         ( Opcional )
+					nVlrDesp,;            		          // 10-Valor da Despesa do item         ( Opcional )
+					nVlrSegu,;             	              // 11-Valor do Seguro do item         ( Opcional )
 					0,;                                   // 12-Valor do Frete Autonomo         ( Opcional )
-					(cAlias)->CK_VALOR + (cAlias)->CK_VALDESC,;     // 13-Valor da Mercadoria             ( Obrigatorio )
+					nVlrMerc,;                            // 13-Valor da Mercadoria             ( Obrigatorio )
 					0,;                                   // 14-Valor da Embalagem             ( Opcional )
 					0,;                                   // 15-RecNo do SB1
 					0)                                    // 16-RecNo do SF4
@@ -583,10 +642,10 @@ Do While !Eof() .And. (cAlias)->(CK_FILIAL + CK_NUM) == xFilial("SCJ")+nDocument
 		MaFisAlt("IT_TES"     ,(cAlias)->CK_TES      , nIdItem)
 		MaFisAlt("IT_PRCUNI"  ,(cAlias)->CK_PRCVEN   , nIdItem)
 		MaFisAlt("IT_DESCONTO",(cAlias)->CK_VALDESC  , nIdItem)
-		MaFisAlt("IT_FRETE"   ,nTotFret/nNrItens, nIdItem)
-		MaFisAlt("IT_DESPESA" ,nTotDesp/nNrItens, nInIdItemtem)
-		MaFisAlt("IT_SEGURO"  ,nTotSegu/nNrItens, nIdItem)
-		MaFisAlt("IT_VALMERC",(cAlias)->CK_VALOR + (cAlias)->CK_VALDESC, nIdItem)
+		MaFisAlt("IT_FRETE"   ,nVlrFret, nIdItem)
+		MaFisAlt("IT_DESPESA" ,nVlrDesp, nIdItem)
+		MaFisAlt("IT_SEGURO"  ,nVlrSegu, nIdItem)
+		MaFisAlt("IT_VALMERC" ,nVlrMerc, nIdItem)
 	Endif
 
 	// Efetua o Calculo da Base da Margem 
@@ -601,113 +660,51 @@ Do While !Eof() .And. (cAlias)->(CK_FILIAL + CK_NUM) == xFilial("SCJ")+nDocument
 			Endif
 
 		ElseIF Left(Alltrim(aImpostos[nX][1]), 3) $ "IPI"
-			(cAlias)->CK_XVALIPI
+			(cAlias)->CK_XVALIPI := aImpostos [nX][5]
 
 		ElseIF Left(Alltrim(aImpostos[nX][1]), 3) $ "ICR"
-			(cAlias)->CK_XVALIST
+			(cAlias)->CK_XVALIST := aImpostos [nX][5]
 		Endif
 	Next
 
-	nRecLiq   := nTotMerc - nTotDesp - nTotFret  - nTotSegu - nTotDesc - nTotImp //nBaseMC := nTotMerc - SCJ->CJ_DESPESA - SCJ->CJ_FRETE - nTotDesc - SCJ->CJ_SEGURO
-	nMargem   := ((nRecLiq - nCustMed) / nRecLiq) * 100
+	IF nCustMed >= 0
+		nRecLiq   := nVlrMerc - nVlrDesp - nVlrFret  - nVlrSegu - nVlrDesc - nTotImp 
+		nMargem   := ((nRecLiq - nCustMed) / nRecLiq) * 100
+	Else
+		nMargem   := -999.99
+	Endif
+
+
+	(cAlias)->CK_XVALFRE := nTotFret 
+	(cAlias)->CK_XVALDSP := nTotDesp 
+	(cAlias)->CK_XVALSEG := nTotSegu 	
 
 	(cAlias)->CK_XCUSTM  := nCustMed
 	(cAlias)->CK_XMC     := nMargem
 	(cAlias)->CK_XTOTIMP := nTotImp
+	(cAlias)->CK_OBS     := cObsCusto
 	MsUnlock()
 
-	//***************************************************************************************************
+	nIdItem++
 
 	dbSelectArea(cAlias)
 	DbSkip()
 EndDo
 
 
-
-/*
-dbSelectArea(cAlias)
 dbGoto(nRecno)
 
-nItem := 0
-Do While !Eof() .And. (cAlias)->(CK_FILIAL + CK_NUM) == xFilial("SCJ")+cDocumento
-	//Pega os tratamentos de impostos
-	dbSelectArea("SB1")
-	dbSetOrder(1)
-	DbSeek(xFilial("SB1")+(cAlias)->CK_PRODUTO)
+If Type("oGetDad") <> "U" .And. nItem > 0
+	oGetDad:oBrowse:Refresh()
+EndIf
 
-	//Pega os tratamentos de impostos
-	dbSelectArea("SF4")
-	dbSetOrder(1)
-	DbSeek(xFilial("SF4")+(cAlias)->CK_TES)
-
-	IF lMsg
-		IncProc()	
-	Endif
-
-	nItem++
-	IF ! MaFisFound("IT", nItem)
-		MaFisAdd(   (cAlias)->CK_PRODUTO,;                     // 1-Codigo do Produto                 ( Obrigatorio )
-					(cAlias)->CK_TES,;                         // 2-Codigo do TES                     ( Opcional )
-					(cAlias)->CK_QTDVEN,;                      // 3-Quantidade                     ( Obrigatorio )
-					(cAlias)->CK_PRCVEN,;                      // 4-Preco Unitario                 ( Obrigatorio )
-					(cAlias)->CK_VALDESC,;                     // 5 desconto
-					"",;                     			  // 6-Numero da NF Original             ( Devolucao/Benef )
-					"",;                    			  // 7-Serie da NF Original             ( Devolucao/Benef )
-					0,;                                   // 8-RecNo da NF Original no arq SD1/SD2
-					nTotFret/nNrItens,;              	  // 9-Valor do Frete do Item         ( Opcional )
-					nTotDesp/nNrItens,;            		  // 10-Valor da Despesa do item         ( Opcional )
-					nTotSegu/nNrItens,;             	  // 11-Valor do Seguro do item         ( Opcional )
-					0,;                                   // 12-Valor do Frete Autonomo         ( Opcional )
-					(cAlias)->CK_VALOR + (cAlias)->CK_VALDESC,;     // 13-Valor da Mercadoria             ( Obrigatorio )
-					0,;                                   // 14-Valor da Embalagem             ( Opcional )
-					0,;                                   // 15-RecNo do SB1
-					0)                                    // 16-RecNo do SF4
-	Else
-		MaFisAlt("IT_QUANT"   ,SCK->CK_QTDVEN   , nItem)
-		MaFisAlt("IT_TES"     ,SCK->CK_TES      , nItem)
-		MaFisAlt("IT_PRCUNI"  ,SCK->CK_PRCVEN   , nItem)
-		MaFisAlt("IT_DESCONTO",SCK->CK_VALDESC  , nItem)
-		MaFisAlt("IT_FRETE"   ,nTotFret/nNrItens, nItem)
-		MaFisAlt("IT_DESPESA" ,nTotDesp/nNrItens, nItem)
-		MaFisAlt("IT_SEGURO"  ,nTotSegu/nNrItens, nItem)
-		MaFisAlt("IT_VALMERC",SCK->CK_VALOR + SCK->CK_VALDESC, nItem)
-	Endif
-
-	dbSelectArea(cAlias)
-	DbSkip()
-EndDo
-*/
-
-/*
-// Efetua o Calculo da Base da Margem 
-aImpostos := MaFisNfCab()
-
-
-// Deduz os Impostos
-For nX := 1 to Len(aImpostos)
-	IF Left(Alltrim(aImpostos[nX][1]), 3) $ "ICM/PS2/CF2"
-		IF aImpostos [nX][5] <> 0
-			nTotImp += aImpostos [nX][5]
-		Endif
-	Endif
-Next
-*/
-
-
-nRecLiq   := nTotMerc - nTotDesp - nTotFret  - nTotSegu - nTotDesc - nTotImp //nBaseMC := nTotMerc - SCJ->CJ_DESPESA - SCJ->CJ_FRETE - nTotDesc - SCJ->CJ_SEGURO
-nMargem   := ((nRecLiq - nCustMed) / nRecLiq) * 100
-
-Aadd(aRet, nCustMed) // Custo Médio do Orçamento
-Aadd(aRet, nTotImp)  // Total de Impostos 
-Aadd(aRet, nMargem)  // Margem de Contribuição
-Aadd(aRet, nDescGrp) // Desconto Médiio do Grupo
 
 RestArea(_aAreaA1)
 RestArea(_aAreaF4)
 RestArea(_aAreaB1)
 RestArea(_aAreaCJ)
+RestArea(_aAreaCK)
 Return()
-
 
 
 /*

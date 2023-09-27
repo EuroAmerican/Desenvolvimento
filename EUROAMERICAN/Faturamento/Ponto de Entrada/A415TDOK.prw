@@ -125,20 +125,26 @@ While TMP1->(!EOF())
 
     EndIf 
 
-	/*---------------------------------------------------------------------------------------------+
-	| INICIO    : Projeto de Politias Comerciais - 21/06/2023 - Paulo Rogerio                      |
-	+----------------------------------------------------------------------------------------------+
-	| ALTERAÇÃO : Obrigar a digitação da justificativo e observação NO ITEM do orçamento, quando   |
-	|             houver desconto adicional informado.                                             |
-	+----------------------------------------------------------------------------------------------*/
+
 	IF U_xFilPComl() .And. !lVldPoliticas
-		//dbSelectArea("TMP1")
+		/*---------------------------------------------------------------------------------------------+
+		| INICIO    : Projeto de Politias Comerciais - 21/06/2023 - Paulo Rogerio                      |
+		+----------------------------------------------------------------------------------------------+
+		| ALTERAÇÃO : 1. Obrigar a digitação da justificativo e observação NO ITEM do orçamento, quando|
+		|                houver desconto adicional informado.                                          |
+		|             2. Calcular e Gravar Impostos, Custo e Margem de Contribuição.                   |
+		+----------------------------------------------------------------------------------------------*/
 		IF !Empty(TMP1->CK_XDESADC) .AND. (Empty(TMP1->CK_XJUSADC) .OR. Empty(TMP1->CK_XOBSADC))
 			Aviso("Politicas Comerciais - A415TDOK ","O campo de Justificativo ou Observação do desconto adicional não foi preenchido para um ou mais itens. Corrija antes de Continuar!", {"Ok"}, 2)
 
 			_lRet := .F.
 			lVldPoliticas := .T.
 		Endif
+
+		// Calcular e Gravar Impostos, Custo e Margem de Contribuição. 
+		//IF _lRet
+		//	U_xCalcMCItem(M->CJ_CLIENTE, M->CJ_LOJA, M->CJ_NUM, TMP1->(Recno()))
+		//Endif
 	Endif
 
     TMP1->(dbSkip())

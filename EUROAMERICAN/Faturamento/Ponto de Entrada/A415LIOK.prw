@@ -143,8 +143,9 @@ EndIf
 /*---------------------------------------------------------------------------------------------+
 | INICIO    : Projeto de Politias Comerciais - 21/06/2023 - Paulo Rogerio                      |
 +----------------------------------------------------------------------------------------------+
-| ALTERAÇÃO : Obrigar a digitação da justificativo e observação no ITEM do orçamento, quando   |
-|             houver desconto adicional informado.                                             |
+| ALTERAÇÃO : 1. Obrigar a digitação da justificativo e observação NO ITEM do orçamento, quando|
+|                houver desconto adicional informado.                                          |
+|             2. Calcular e Gravar Impostos, Custo e Margem de Contribuição.                   |
 +----------------------------------------------------------------------------------------------*/
 IF U_xFilPComl()
 	// Atualiza o desconto adicional no cabeçalho do Orçamento
@@ -167,6 +168,11 @@ IF U_xFilPComl()
 		Aviso("Politicas Comerciais - A415LIOK ","O campo de Justificativo ou Observação do desconto adicional não foi preenchido no item. Corrija antes de Continuar!", {"Ok"}, 2)
 		_lRet := .F.
 	Endif
+
+	// Calcular e Gravar Impostos, Custo e Margem de Contribuição.
+	//IF _lRet
+	//	U_xCalcMCItem(M->CJ_CLIENTE, M->CJ_LOJA, M->CJ_NUM, TMP1->(Recno()))
+	//Endif
 Endif
 
 //SPACE(TAMSX3("CK_XOBSADC")[1])

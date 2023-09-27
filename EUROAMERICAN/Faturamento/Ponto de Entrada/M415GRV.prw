@@ -97,7 +97,6 @@ If cfilAnt $ cFilComis
 	WK_SCK->(DbGoTop())
 
 	While WK_SCK->(!Eof())
-
 		_cGerFin    := Posicione("SF4",1,xFilial("SF4")+ WK_SCK->CK_TES,"F4_DUPLIC")     // verifica se a Tes gera financeiro
 		_cCodProd   := WK_SCK->CK_PRODUTO                                                // Codigo do Produto 
 		_cComRev    := Posicione("SB1",1,xFilial("SB1")+WK_SCK->CK_PRODUTO,"B1_XREVCOM") // Ultima revsão cadastrada na tabela PAA
@@ -382,13 +381,14 @@ If Select("WK_PAA") > 0
 EndIf
 
 
-
 /*---------------------------------------------------------------------------------------------+
 | INICIO    : Projeto de Politias Comerciais - 03/07/2023 - Paulo Rogerio                      |
 +----------------------------------------------------------------------------------------------+
 | ALTERAÇÃO : Calcular e gravar a Margem de Contribuição do Orçamento de Venda.                |
 +----------------------------------------------------------------------------------------------*/
-IF U_xFilPComl() .And. Inclui .OR. Altera 
+IF U_xFilPComl() .And. (Inclui .OR. Altera)
+	// Calcular e Gravar Impostos, Custo e Margem de Contribuição dos ITENS do orçamento. 
+	U_xCalcMCItem(SCJ->CJ_CLIENTE, SCJ->CJ_LOJA, SCJ->CJ_NUM, 0)
 
 	dbSelectArea("SA1")
 	dbsetOrder(1)
@@ -447,7 +447,7 @@ IF U_xFilPComl() .And. Inclui .OR. Altera
 		//=========================================================================
 	Endif
 
-	// Calcula a Margem de Contribuição Individual
+	// Calcula a Margem de Contribuição Individual do Orçamento
 	Processa({|| U_xCalcMargem(@aMargem, SCJ->CJ_CLIENT, SCJ->CJ_LOJAENT, SCJ->CJ_NUM, 1, .T.)}, "Aguarde","Calculando Margem Individual...")
 
 	dbSelectArea("SCJ")
@@ -463,10 +463,10 @@ IF U_xFilPComl() .And. Inclui .OR. Altera
 	MsUnlock()
 
 
-	IF SA1->A1_GRPVEN <> ''
+	IF SA1->A1_GRPVEN <> '' //.And. SCJ->CJ_XLTPROC <> ''
 		aMargem := {}
 
-		// Calcula a Margem de Contribuição da Holding
+		// Calcula a Margem de Contribuição da Holding do Orçamento
 		Processa({|| U_xCalcMargem(@aMargem, SCJ->CJ_CLIENT, SCJ->CJ_LOJAENT, SCJ->CJ_NUM, 2, .T.)}, "Aguarde","Calculando Margem da Holding...")
 
 		IF aMargem[3] <> 0

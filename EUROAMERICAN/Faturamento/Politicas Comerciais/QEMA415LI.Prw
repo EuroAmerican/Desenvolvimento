@@ -39,11 +39,16 @@ Private vpParHolAte:= ""
 Private vpParOrcDe := ""
 Private vpParOrcAte:= ""
 Private vpParTipLib:= ""
+Private vpParVndDe := ""
+Private vpParVndAte:= ""
 
 IF !U_xFilPComl() 
     MsgAlert("Rotina disponivel apenas para as empresas Qualy e Phoenix!")
     Return
 Endif
+
+
+
 
 //-----------|Grupo|Ord|Pergta                 |Pergunta              |Pergunta              |Variavel|Tip|Ta|D|P|GSC|Va|Var01     |Def Port       |De|De|Cn|Va|Def Port2      |De|De|Cn|Va|Def Port3    |De|De|Cn|Va|Def Port4    |De|De|Cn|Va|Def Port5  |De|De|Cn|F3|P |GRP
 //-----------|     |em |Portug                 |Espanhol              |Ingles                |        |   |ma|e|r|   |li|          |               |f |f |te|r |               |f |f |te|r |             |f |f |te|r |             |f |f |te|r |           |f |f |te|  |Y |SXG
@@ -57,6 +62,8 @@ AAdd(_aRegs,{_cPerg,"06","Holding de         ?","Holding de         ?","Holding 
 AAdd(_aRegs,{_cPerg,"07","Holding ate        ?","Holding ate        ?","Holding ate        ?","mv_ch7","C",06,0,0,"G","","mv_par07",""             ,"","","","",""             ,"","","","",""           ,"","","","",""           ,"","","","",""         ,"","","","ACY"   ,"",""})
 AAdd(_aRegs,{_cPerg,"08","Orçamento de       ?","Orçamento de       ?","Orçamento de       ?","mv_ch8","C",06,0,0,"G","","mv_par08",""             ,"","","","",""             ,"","","","",""           ,"","","","",""           ,"","","","",""         ,"","","",""      ,"",""})
 AAdd(_aRegs,{_cPerg,"09","Orçamento ate      ?","Orçamento ate      ?","Orçamento ate      ?","mv_ch9","C",06,0,0,"G","","mv_par09",""             ,"","","","",""             ,"","","","",""           ,"","","","",""           ,"","","","",""         ,"","","",""      ,"",""})
+AAdd(_aRegs,{_cPerg,"10","Vendedor de        ?","Vendedor de        ?","Vendedor de        ?","mv_cha","C",06,0,0,"G","","mv_par10",""             ,"","","","",""             ,"","","","",""           ,"","","","",""           ,"","","","",""         ,"","","","SA3"   ,"",""})
+AAdd(_aRegs,{_cPerg,"11","Vendedor ate       ?","Vendedor ate       ?","Vendedor ate       ?","mv_chb","C",06,0,0,"G","","mv_par11",""             ,"","","","",""             ,"","","","",""           ,"","","","",""           ,"","","","",""         ,"","","","SA3"   ,"",""})
 
 U_FSX1FUNC(_aRegs, _cPerg)
 
@@ -73,12 +80,20 @@ vpParHolDe := mv_par06
 vpParHolAte:= mv_par07
 vpParOrcDe := mv_par08
 vpParOrcAte:= mv_par09
+vpParVndDe := mv_par10
+vpParVndAte:= mv_par11
 
 IF vpParTipLib == 1
     IF ! MSGYESNO( "Tem certeza que deseja submneter os orçamentos a liberação efetiva?", "LIBERAÇÃO EFETIVA" )
         Return
     Endif
 Endif
+
+If !UPPER(cUserName)  $ SuperGetMV("ES_MT415BR", .T., .F.) //"Administrator#Alessandra.Monea#Thiago.Monea#Robson.Moraes#Joelita.Silva#Luciana.Mota#Daiane.Gomes#Kely.Souza#Eunice.Godoy#Tatiane.Paz#Marcia.Oliveira" // ! Vendedores externos
+    vpParVndDe := U_FATX008V() 
+    vpParVndAte:= vpParVndDe
+EndIf
+
 
 Processa({|| fProcessar()}, "Aguarde","Processando a liberação dos orçamentos...")
 
@@ -158,6 +173,7 @@ cQuery += "           AND CJ_VALIDA >= '"+dtos(dDataBase)+"'"+ENTER
 cQuery += "           AND CJ_EMISSAO BETWEEN '"+dtos(vpParEmiDe)+"' AND '"+dtos(vpParEmiAte)+"'"+ENTER
 cQuery += "           AND CJ_CLIENT  BETWEEN '"+vpParCliDe+"' AND '"+vpParCliAte+"'"+ENTER
 cQuery += "           AND CJ_XGRPCLI BETWEEN '"+vpParHolDe+"' AND '"+vpParHolAte+"'"+ENTER
+cQuery += "           AND CJ_VEND1   BETWEEN '"+vpParVndDe+"' AND '"+vpParVndAte+"'"+ENTER
 cQuery += "           AND CJ_NUM     BETWEEN '"+vpParOrcDe+"' AND '"+vpParOrcAte+"'"+ENTER
 cQuery += "           AND CJ_STATUS = 'A'"+ENTER
 cQuery += "         GROUP BY CJ_FILIAL, CJ_XGRPCLI"

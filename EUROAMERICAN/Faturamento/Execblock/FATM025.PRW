@@ -103,13 +103,18 @@ Begin Sequence
 	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 	If MsgYesNo("Deseja prosseguir com a importação do pedido?", "DICICO")
 
-		xCnpjCli	:= OXML:_PEDIDO:_CABECALHO:_CNPJ_EMISSOR:TEXT
-		xPedCli		:= OXML:_PEDIDO:_CABECALHO:_NUMERO_PEDIDO:TEXT
+		xCnpjCli	:= Alltrim(OXML:_PEDIDO:_CABECALHO:_CNPJ_EMISSOR:TEXT)
+		xPedCli		:= Alltrim(OXML:_PEDIDO:_CABECALHO:_NUMERO_PEDIDO:TEXT)
 		xIteCli		:= ""
 		xCodBar		:= ""
 
 		SA1->(dbSetOrder(3))
 		SA1->(dbSeek(xFilial("SA1") + xCnpjCli))
+
+		IF Len(xPedCli) > 10 
+			MsgStop("O número do pedido do cliente deve ter no máximo 10 caracteres. Corrija antes de continuar!", "Atenção")
+			Break
+		Endif
 
 		If SA1->(!Found())
 			MsgStop("Nao foi possível encontrar o cadastro do cliente através do CNPJ ( " + xCnpjCli + " ) do arquivo.", "Atenção")
