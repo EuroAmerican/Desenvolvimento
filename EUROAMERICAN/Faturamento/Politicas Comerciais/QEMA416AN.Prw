@@ -76,6 +76,8 @@ Local nDescTot := 0
 Local cHolding := ""
 Local cNome    := ""
 
+Private eLstEmail := ""
+
 //--------------------------------------------------------------------------
 // [INICIO ] - Rotina para identificar os pedidos e analisar suas 
 // caracteristicas individualmente.
@@ -130,9 +132,15 @@ Do While !Eof() //ORCX->(CJ_FILIAL + CJ_XGRPCLI) == cChave .and. !Eof()
         cNome    := Alltrim(Padr((SA1->A1_NOME), 40))
     Endif        
 
-    dbSelectArea("SCJ")
+    dbSelectArea("SA3")
+    dbSetOrder(1)
+    dbSeek(xFilial("SA3")+SCJ->CJ_VEND1)
 
-    //cMsg := IIF(Empty(cMsg), Rtrim(CJ_XMOTBLQ), cMsg)
+    IF AT(Alltrim(SA3->A3_EMAIL), eLstEmail) == 0
+        eLstEmail += ";"+Alltrim(SA3->A3_EMAIL)
+    Endif
+
+    dbSelectArea("SCJ")
 
     //              01              , 02          ,  03  , 04        , 05        , 06        , 07       , 08        , 09        , 10       , 11        , 12       , 13       , 14                                                 , 15 , 16
     Aadd(aPedidos, {ORCX->CJ_XGRPCLI, ORCX->CJ_NUM, cNome, CJ_XDESSCO, CJ_XDESFIN, CJ_XDESLOG, CJ_XDESCF, CJ_XDESMIX, CJ_XDESADC, nDescTot , CJ_XDESGRP, CJ_XMCIND, CJ_XMCGRP, iif(CJ_XBLOQ == "S","Doc.Bloqueado","Doc.Liberado"), CJ_XMOTBLQ, SCJ->(Recno())})
@@ -140,6 +148,9 @@ Do While !Eof() //ORCX->(CJ_FILIAL + CJ_XGRPCLI) == cChave .and. !Eof()
     dbSelectArea("ORCX")
     dbSkip()
 Enddo
+
+// Emails dos Representantes
+eLstEmail := Lower(Subs(eLstEmail, 2))
 
 dbCloseArea()
 
@@ -537,7 +548,7 @@ For nX := 1 to Len(aItens)
 Next
 
 // Define mensagem para gravação no arquivo de log.
-cObserv  := "Procesamento em:" + dtoc(dDataBase) + " as " + Time() + chr(13)+chr(10)
+cObserv  := "Processamento em:" + dtoc(dDataBase) + " as " + Time() + chr(13)+chr(10)
 cObserv  += "Usuário:" + cUserName +  chr(13)+chr(10)
 cObserv  += "Grupo:" + cHolding+ chr(13)+chr(10)
 cObserv  += "Status:" + iif(nOpcao == 1, "** Orçamentos Rejeitados **","** Orçamentos Aprovados **") + chr(13)+chr(10)
@@ -561,7 +572,7 @@ Endif
 cObserv  := '<html>'+ chr(13)+chr(10)
 cObserv  += '<b><font size="3" face="Arial">Notificação sobre análise de orçamentos</font></b><br><br>'+ chr(13)+chr(10)
 
-cObserv  += '<b><font size="2" face="Arial">Procesamento em: ' + dtoc(dDataBase) + " as " + Time()+'</b><br>'+ chr(13)+chr(10)
+cObserv  += '<b><font size="2" face="Arial">Processamento em: ' + dtoc(dDataBase) + " as " + Time()+'</b><br>'+ chr(13)+chr(10)
 cObserv  += '<b><font size="2" face="Arial">Lote de Orçamentos: ' + cLotePrc+'</b><br>'+ chr(13)+chr(10)
 cObserv  += '<b><font size="2" face="Arial">Analista: ' + cUserName +'</b><br>' +  chr(13)+chr(10)
 cObserv  += '<b><font size="2" face="Arial">Grupo: '    + cHolding  +'</b><br>' + chr(13)+chr(10)
@@ -573,10 +584,10 @@ cObserv  += '</html>'+ chr(13)+chr(10)
 
 cObserv := upper(cObserv)
 
-dbSelectArea("SA3")
-dbSetOrder(1)
-dbSeek(xFilial("SA3")+cRepres)
-cEmail   := alltrim(SA3->A3_EMAIL)
+//dbSelectArea("SA3")
+//dbSetOrder(1)
+//dbSeek(xFilial("SA3")+cRepres)
+cEmail   := eLstEmail //alltrim(SA3->A3_EMAIL)
 
 // Envia email informativo para o repreentante.
 U_xEnvMail("paulo.santos@euroamerican.com.br", cCopia, "ANÁLISE DE ORÇAMENTO **TESTE** - "+cHolding+" - Lote:"+cLotePrc, cObserv,,.T.)

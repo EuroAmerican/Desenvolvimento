@@ -144,6 +144,7 @@ Local cHolding := ""
 Local cNome    := ""
 Local cAcaoLib := "L"
 Local aBloq    := {}
+Local cTipAcao := ""
 
 Private nPercCF  := GETMV( "QE_PERCCF")  // ,,  2)
 Private nPesoCMI := GETMV( "QE_CARGAMI") //,, 14000)
@@ -227,6 +228,7 @@ cQuery += "           AND CJ_VALIDA >= '"+dtos(dDataBase)+"'"+ENTER
 cQuery += "           AND CJ_EMISSAO BETWEEN '"+dtos(vpParEmiDe)+"' AND '"+dtos(vpParEmiAte)+"'"+ENTER
 cQuery += "           AND CJ_CLIENT  BETWEEN '"+vpParCliDe+"' AND '"+vpParCliAte+"'"+ENTER
 cQuery += "           AND CJ_XGRPCLI BETWEEN '"+vpParHolDe+"' AND '"+vpParHolAte+"'"+ENTER
+cQuery += "           AND CJ_VEND1   BETWEEN '"+vpParVndDe+"' AND '"+vpParVndAte+"'"+ENTER
 cQuery += "           AND CJ_NUM     BETWEEN '"+vpParOrcDe+"' AND '"+vpParOrcAte+"'"+ENTER
 cQuery += "           AND CJ_STATUS = 'A'"+ENTER
 
@@ -269,7 +271,8 @@ Do While !Eof()
         cAcaoLib := ACY->ACY_XACAO
         lDescMix := ACY->ACY_ZDSCMI == "S"
         lDescCF  := ACY->ACY_ZDSCCF == "S"   
-        lDescLog := ACY->ACY_ZDSCLG == "S"     
+        lDescLog := ACY->ACY_ZDSCLG == "S"    
+        cTipAcao := IF(Empty(ACY->ACY_XACAO), "L", ACY->ACY_XACAO)  
     Endif
 
     Do While ORCX->(CJ_FILIAL + CJ_XGRPCLI) == cChave .and. !Eof()
@@ -282,7 +285,8 @@ Do While !Eof()
             cNome := Alltrim(Padr((SA1->A1_NOME), 40))
             lDescMix := SA1->A1_ZDSCMIX == "S"
             lDescCF  := SA1->A1_ZDSCCF  == "S"   
-            lDescLog := SA1->A1_ZDSCLOG == "S"            
+            lDescLog := SA1->A1_ZDSCLOG == "S"   
+            cTipAcao := "L"          
         Endif
 
 
@@ -298,8 +302,8 @@ Do While !Eof()
            /* Data.......: 29/08/2023
               Analista...: Paulo Rogério
               Solicitante: Eristeu
-              Alteração..: A partir dessa data, os descontos  MIC, Carga Fechada e Logisitico passam a ser digitados pelo usuário, 
-                           ao invés de aplicados automáticamente. Vise MIQE031 - Solicitacao_de_Mudança_de_Escopo – 01.doc 
+              Alteração..: A partir dessa data, os descontos  MIx, Carga Fechada e Logisitico passam a ser digitados pelo usuário, 
+                           ao invés de aplicados automáticamente. Vide MIQE031 - Solicitacao_de_Mudança_de_Escopo – 01.doc 
 
               Processa({|| U_xGrvMixCF(SCJ->CJ_XGRPCLI, SCJ->CJ_XLTPROC)}, "Aguarde","Calculando descontos da Holding, por volume ...")
            */        
@@ -385,7 +389,7 @@ Do While !Eof()
 
     IF Len(aPedidos) > 0
         // Efetua Agrupamento, Liberação/Bloqueio dos Pedidos
-        FwMsgRun( ,{ || fLiberar(aPedidos, aTotais[nPesq][7], cMsg, cLotePrc) }, , 'Liberando Orçamentos! aguarde...' )
+        FwMsgRun( ,{ || fLiberar(aPedidos, aTotais[nPesq][7], cMsg, cLotePrc, cTipAcao) }, , 'Liberando Orçamentos! aguarde...' )
     Endif
 
     dbSelectArea("ORCX")
@@ -482,7 +486,7 @@ Return(aRet)
 | -------------------------------------------------------------------------
 | -------------------------------------------------------------------------
 */
-Static Function fLiberar(aPedidos, lLiberado, cMensagem, cLotePrc)
+Static Function fLiberar(aPedidos, lLiberado, cMensagem, cLotePrc, cTipAcao)
 Local nX       := 0
 Local cObserv  := ""
 Local aArea    := {}
@@ -506,7 +510,12 @@ lAdmin := nUsrNivel >= 7 .Or. "ADMIN" $ Upper(cUserName)
 
 // Define mensagem para gravação no arquivo de log.
 IF vpParTipLib == 1
-    cObserv  := "Procesamento em:" + dtoc(dDataBase) + " as " + Time() + ENTER
+    IF cTipAcao == "L" .OR. UPPER(cUserName) $ SuperGetMV("ES_MT415BR", .T., .F.)
+        cObserv  := "Processamento em:" + dtoc(dDataBase) + " as " + Time() + ENTER
+    Else
+        cObserv  := "Notificação em:" + dtoc(dDataBase) + " as " + Time() + ENTER
+    Endif
+
     cObserv  += "Usuário:" + cUserName + ENTER
     cObserv  += "Grupo:" + aPedidos[1][1] + ENTER
 
@@ -539,11 +548,17 @@ For nX := 1 to Len(aPedidos)
     SCJ->CJ_XLTPROC:= cLotePrc
 
     IF vpParTipLib == 1
-        SCJ->CJ_STATUS := iif(!lLiberado, "F", "A") // F =Bloqueado, A=aberto
-        SCJ->CJ_XLIBER := iif(!lLiberado, " ", "A") // ""=Bloqueado, A=Aberto"
-        SCJ->CJ_XBLOQ  := iif(!lLiberado, "S", "N") 
+        IF cTipAcao == "L" .OR. UPPER(cUserName) $ SuperGetMV("ES_MT415BR", .T., .F.)
+            SCJ->CJ_STATUS := iif(!lLiberado, "F", "A") // F =Bloqueado, A=Aberto
+            SCJ->CJ_XLIBER := iif(!lLiberado, " ", "A") // ""=Bloqueado, A=Aberto"
+            SCJ->CJ_XBLOQ  := iif(!lLiberado, "S", "N") 
+        Else
+            SCJ->CJ_STATUS := "A" // A=Aberto
+            SCJ->CJ_XLIBER := "P" // P=Pendente
+            SCJ->CJ_XBLOQ  := "N"        
+        Endif
 
-        IF !lLiberado
+        IF !lLiberado //.And. cTipAcao == "L"
             SCJ->CJ_XMOTBLQ := aPedidos[nX][15] //IIF(!Empty(cMensagem), Strtran(Rtrim(cMensagem), ENTER, " | "), "") // 15 - Ocorrências
         Else
             SCJ->CJ_XMOTBLQ := ""
@@ -553,7 +568,7 @@ For nX := 1 to Len(aPedidos)
     MsUnlock()
 
 
-    IF lLiberado .And. vpParTipLib == 1 
+    IF lLiberado .And. vpParTipLib == 1  .And. (cTipAcao == "L" .OR. UPPER(cUserName) $ SuperGetMV("ES_MT415BR", .T., .F.))
         //----------------------------------------------------
         // Altera parametros de liberação da rotina padrão
         //----------------------------------------------------

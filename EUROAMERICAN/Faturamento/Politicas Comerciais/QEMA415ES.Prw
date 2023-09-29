@@ -223,7 +223,7 @@ else
     // Grava Log de Processamento do Estorno
     //==============================================
 
-    cObserv  := "Procesamento do Estorno em:" + dtoc(dDataBase) + " as " + Time() + ENTER
+    cObserv  := "Processamento do Estorno em:" + dtoc(dDataBase) + " as " + Time() + ENTER
     cObserv  += "Usuário:" + cUserName + ENTER
 
     //cObserv  += "Grupo:" + aPedidos[1][1] + ENTER

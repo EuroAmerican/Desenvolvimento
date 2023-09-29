@@ -722,7 +722,7 @@ Return(aNNCBLD)
 
 /*/{Protheus.doc} fModulo10
 Calculo Modulo 10
-@type function Procesamento
+@type function Processamento
 @version  1.00
 @author S/A - mario.antonaccio
 @since S/D - 24/09/2021
