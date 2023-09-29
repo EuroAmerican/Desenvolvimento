@@ -242,9 +242,9 @@ Do While ! Eof()
 			Endif
 
 			IF Alltrim(aCampos[nCont][1]) == "ACO_CODCLI"
-				IF RTRIM(IT_ACO_CODCLI) $ '011929' 
-					XPTO := 0
-				ENDIF
+				//IF RTRIM(IT_ACO_CODCLI) $ '011929' 
+				//	XPTO := 0
+				//ENDIF
 			ENDIF
 		Next nCont
 		MsUnlock()

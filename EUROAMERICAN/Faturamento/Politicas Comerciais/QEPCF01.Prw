@@ -100,7 +100,7 @@ IF nTipo == 1
 		ProcRegua(20)	
 	Endif
 
-	Do While !Eof() .And. SCK->(CK_FILIAL + CK_NUM) == xFilial("SCJ")+M->CJ_NUM
+	Do While !Eof() .And. SCK->(CK_FILIAL + CK_NUM) == xFilial("SCJ")+nDocumento
 		nNrItens++
 
 		nTotalNF += SCK->CK_VALOR

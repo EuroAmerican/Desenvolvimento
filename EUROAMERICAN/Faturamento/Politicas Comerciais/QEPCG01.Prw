@@ -162,6 +162,11 @@ If ( lTodos )
 EndIf
 
 Do While &(cCondicao) //( !Eof() )
+
+    //IF AllTrim((cAlias)->CK_PRODUTO) $ "7000.085.23/0630.001.55/0500.500.23"
+    //	xpto := 0
+    //ENDIF
+
 	If ( (cAlias)->CK_PRUNIT > 0 )
 		nPrcLst  := (cAlias)->CK_PRUNIT //fPrcDesc((cAlias)->CK_PRUNIT)
         nDesAdc  := IIF(Empty((cAlias)->CK_XDESADC), 0, (cAlias)->CK_XDESADC)

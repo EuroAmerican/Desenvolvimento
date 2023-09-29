@@ -25,6 +25,9 @@ Local aCores := {{ 'ENABLE'      , 'Orcamento em Aberto' },;  //'Orcamento em Ab
 				{ 'BR_AMARELO'   , 'Orcamento nao Orcado' },; //'Orcamento nao Orcado'
 				{ 'BR_MARROM'    , 'Orcamento bloqueado' },;  //'Orcamento bloqueado'
 				{ 'BR_AZUL_CLARO', 'Orcamento Aberto/Rejeitado'},;
+				{ 'BR_BRANCO'    , 'Orcamento Aberto/Notificado'},;
 				{ 'BR_VIOLETA'   , 'Orcamento Efetivado'}} 
+
+				
 			
 Return(aCores)
