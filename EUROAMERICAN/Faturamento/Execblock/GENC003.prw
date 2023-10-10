@@ -31,7 +31,7 @@ Local aArea    := GetArea()
 // Orçamento de Vendas / Saidas
 If Upper(Alltrim(FunName())) == "MATA415" 	//Criado filtro SA1SCJ e alterado campo
 
-	If !cUserName  $ "Administrador#Ricardo.Barbosa#fatima.pap#Alessandra.Monea#Thiago.Monea#Robson.Moraes#Joelita.Silva#Luciana.Mota#Daiane.Gomes#Ellen.Ataide#Kely.Souza#Douglas.Moura#Eunice.Godoy#Tatiane.Paz#Marcia.Oliveira#Marina.Gama#Barbara.Reis#Cristiane.Eloy" // ! Vendedores externos 
+	If !Upper(cUserName)  $ SuperGetMV("ES_MT415BR", .T., .F.) // upper("Administrador#Ricardo.Barbosa#fatima.pap#Alessandra.Monea#Thiago.Monea#Robson.Moraes#Joelita.Silva#Luciana.Mota#Daiane.Gomes#Ellen.Ataide#Kely.Souza#Douglas.Moura#Eunice.Godoy#Tatiane.Paz#Marcia.Oliveira#Marina.Gama#Barbara.Reis#Cristiane.Eloy") // ! Vendedores externos 
 		cFiltro := "@# A1_VEND $ '" + U_FATX008V() + "' @#"  
 	EndIf          
 	

@@ -54,6 +54,7 @@ Local cLotePrc   := ""
 Local cGrpCliente:= ""
 Local nTotalOrc  := 0
 Local nTotalAdc  := 0
+Local nTotalLts  := 0
 Local nPercAdc   := 0
 
 
@@ -290,9 +291,31 @@ If cfilAnt $ cFilComis
 			
 			EndIf
 
-			//Projeto de Politias Comerciais - 28/08/2023 - Paulo Rogerio  
+			//---------------------------------------------------------------------
+			//[INICIO] Projeto de Politias Comerciais - 28/08/2023 - Paulo Rogerio  
+			//---------------------------------------------------------------------
+			DbSelectArea("SCK")
+			DbSetorder(1)
+			dbSeek(xFilial("SCK")+WK_SCK->(CK_NUM+CK_ITEM+CK_PRODUTO))
+
 			nTotalOrc  += SCK->CK_VALOR
 			nTotalAdc  += SCK->CK_VALOR * (SCK->CK_XDESADC / 100)
+
+			IF Empty(SCK->CK_XORGDES)
+				Reclock("SCK",.F.)
+				SCK->CK_XORGDES := "A"
+				SCK->(Msunlock())
+			Endif
+
+			dbSelectArea("SB1")
+			dbSetOrder(1)
+			dbseek(xFilial("SB1")+SCK->CK_PRODUTO)
+
+			nTotalLts += SCK->CK_QTDVEN * SB1->B1_CONV
+			
+			//---------------------------------------------------------------------
+			//[TERMINO] Projeto de Politias Comerciais - 28/08/2023 - Paulo Rogerio  
+			//---------------------------------------------------------------------			
 		EndIf	
 		
 		WK_SCK->(dbSkip())
@@ -387,6 +410,14 @@ EndIf
 | ALTERAÇÃO : Calcular e gravar a Margem de Contribuição do Orçamento de Venda.                |
 +----------------------------------------------------------------------------------------------*/
 IF U_xFilPComl() .And. (Inclui .OR. Altera)
+	// Quando o orçamento é copiado, este campo pode ser gravado vazio, 
+	// por isso, verifico e graça, se necessário.
+	IF Empty(SCJ->CJ_XGRPCLI)
+		RecLock('SCJ',.F.)
+		SCJ->CJ_XGRPCLI := U_xGetGrpCli(SCJ->CJ_CLIENT, SCJ->CJ_LOJA)
+		MsUnlock()
+	Endif
+
 	// Calcular e Gravar Impostos, Custo e Margem de Contribuição dos ITENS do orçamento. 
 	U_xCalcMCItem(SCJ->CJ_CLIENTE, SCJ->CJ_LOJA, SCJ->CJ_NUM, 0)
 
@@ -458,8 +489,10 @@ IF U_xFilPComl() .And. (Inclui .OR. Altera)
 	SCJ->CJ_XMCIND  := aMargem[3]
 	SCJ->CJ_XDESGRP := aMargem[4]
 
-	// Desconto Adicional médio do orçamento
+	// Desconto Adicional médio do orçamento e Total de Litros
 	SCJ->CJ_XDESADC := nPercAdc
+	SCJ->CJ_XLTORC  := nTotalLts
+	SCJ->CJ_XLTGRP  := IIF(RIGHT(SCJ->CJ_XGRPCLI, 2) == "XX", nTotalLts, SCJ->CJ_XLTGRP)
 	MsUnlock()
 
 

@@ -931,6 +931,48 @@ RestArea(_aAreaCK)
 RestArea(_aAreaCJ)
 Return 
 
+
+/*
+| Função...: xVldTabPrc()
+| Autor....: Paulo Rogerio
+| Data.....: 06/10/2023
+| Retorno..: Nenhum
+| Parametr.: 1. Produto, 2.Tabela
+| Descricão: Validar a tabela de preços do produto do orçamento - Politicas Comerciais.
+| 
+| Observac.: 
+| Objetivo.: 
+| Documentação: Projeto de Politicas Comerciais - QUALY
+|
+| 1 - Função xCalcMargem - Calculo da Margem de Comtribuição Individual 
+|     e em grupo do(s) Orçamento(s). Também calcula o desconto médio do 
+|     grupo de orçamentos.
+|
+| Data       Programador    Alteração
+| -------------------------------------------------------------------------
+| -------------------------------------------------------------------------
+*/
+
+
+User Function xVldTabPrc(cProduto, cTabela)
+Local _aArea   := GetArea()
+Local _aAreaDA1:= DA1->(GetArea())
+
+Local lRet     := .T.
+
+dbSelectArea("DA1")
+dbSetOrder(1) //DA1_FILIAL+DA1_CODTAB+DA1_CODPRO+DA1_INDLOT+DA1_ITEM  
+dbSeek(xFilial("DA1")+cTabela+cProduto)
+
+IF DA1->(DA1_CODTAB+DA1_CODPRO) <> cTabela + cProduto .OR. DA1->DA1_PRCVEN == 0
+	lRet := .F.
+	MsgAlert("Produto "+Alltrim(cProduto)+" inexistente ou zerado na tabela de preços "+cTabela,"Politicas Comerciais")
+Endif 
+
+Restarea(_aArea)
+Restarea(_aAreaDA1)
+Return(lRet)
+
 /*/{Protheus.doc} QEMAIL08 
 //Função de Envio de e-mail QUALY 
 @author Fabio Carneiro dos Santos 

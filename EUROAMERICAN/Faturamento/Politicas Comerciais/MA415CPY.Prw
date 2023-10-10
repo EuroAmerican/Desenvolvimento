@@ -45,4 +45,6 @@ aadd(aCampos, "CJ_XTOTIMP")
 aadd(aCampos, "CJ_XCUSTO")
 aadd(aCampos, "CJ_XLTPROC")
 
+aadd(aCampos, "CJ_STATUS")
+
 Return(aCampos)

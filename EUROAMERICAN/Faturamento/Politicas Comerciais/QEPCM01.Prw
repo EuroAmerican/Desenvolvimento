@@ -141,7 +141,7 @@ For nX := 1 to 2
 Next
 
 
-cQuery += "			--DEVOLUÇÃO DE COMPRA" + ENTER
+cQuery += "			--DEVOLUÇÃO DE VENDA" + ENTER
 cQuery += "				SELECT F1_FILIAL             AS Filial," + ENTER
 cQuery += "					   F1_FORNECE            AS Cliente, " + ENTER
 cQuery += "					   F1_LOJA               AS Loja, " + ENTER
