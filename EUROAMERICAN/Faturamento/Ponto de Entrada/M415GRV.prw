@@ -410,16 +410,15 @@ EndIf
 | ALTERAÇÃO : Calcular e gravar a Margem de Contribuição do Orçamento de Venda.                |
 +----------------------------------------------------------------------------------------------*/
 IF U_xFilPComl() .And. (Inclui .OR. Altera)
-	// Quando o orçamento é copiado, este campo pode ser gravado vazio, 
-	// por isso, verifico e graça, se necessário.
+	//=============================================================
+	// - Quando o orçamento é copiado, este campo pode ser gravado
+	//  como vazio, por isso, verifico e gravo, se necessário.
+	//=============================================================
 	IF Empty(SCJ->CJ_XGRPCLI)
 		RecLock('SCJ',.F.)
 		SCJ->CJ_XGRPCLI := U_xGetGrpCli(SCJ->CJ_CLIENT, SCJ->CJ_LOJA)
 		MsUnlock()
 	Endif
-
-	// Calcular e Gravar Impostos, Custo e Margem de Contribuição dos ITENS do orçamento. 
-	U_xCalcMCItem(SCJ->CJ_CLIENTE, SCJ->CJ_LOJA, SCJ->CJ_NUM, 0)
 
 	dbSelectArea("SA1")
 	dbsetOrder(1)
@@ -478,7 +477,16 @@ IF U_xFilPComl() .And. (Inclui .OR. Altera)
 		//=========================================================================
 	Endif
 
+	//===========================================================
+	// - Calcular e Gravar Impostos, Custo e Margem de 
+	// Contribuição dos ITENS do orçamento. 
+	//===========================================================
+	U_xCalcMCItem(SCJ->CJ_CLIENTE, SCJ->CJ_LOJA, SCJ->CJ_NUM, 0)
+
+
+	//===========================================================
 	// Calcula a Margem de Contribuição Individual do Orçamento
+	//===========================================================
 	Processa({|| U_xCalcMargem(@aMargem, SCJ->CJ_CLIENT, SCJ->CJ_LOJAENT, SCJ->CJ_NUM, 1, .T.)}, "Aguarde","Calculando Margem Individual...")
 
 	dbSelectArea("SCJ")
@@ -499,7 +507,10 @@ IF U_xFilPComl() .And. (Inclui .OR. Altera)
 	IF SA1->A1_GRPVEN <> '' //.And. SCJ->CJ_XLTPROC <> ''
 		aMargem := {}
 
-		// Calcula a Margem de Contribuição da Holding do Orçamento
+		//===========================================================
+		// - Calcula a Margem de Contribuição Média dos Orçamentos 
+		// da Holding.
+		//===========================================================
 		Processa({|| U_xCalcMargem(@aMargem, SCJ->CJ_CLIENT, SCJ->CJ_LOJAENT, SCJ->CJ_NUM, 2, .T.)}, "Aguarde","Calculando Margem da Holding...")
 
 		IF aMargem[3] <> 0
@@ -510,7 +521,6 @@ IF U_xFilPComl() .And. (Inclui .OR. Altera)
 			cQuery += " FROM ("+ENTER			
 			cQuery += "       SELECT CJ_FILIAL, CJ_NUM, CJ_CLIENT, CJ_LOJAENT"+ENTER
 			cQuery += "	        FROM "+RetSqlName("SCJ")+" AS SCJ WITH(NOLOCK)"+ENTER
-			//cQuery += "	        INNER JOIN "+RetSqlName("SA1")+" AS SA1 ON SA1.D_E_L_E_T_ = '' AND A1_FILIAL = CJ_FILIAL AND A1_COD = CJ_CLIENT AND A1_LOJA = CJ_LOJAENT AND A1_GRPVEN = '"+SA1->A1_GRPVEN+"'"+ENTER
 			cQuery += "         WHERE SCJ.D_E_L_E_T_ = ''"+ENTER
         	cQuery += "           AND CJ_FILIAL = '"+xFilial("SCJ")+"'"+ENTER
 			cQuery += "           AND CJ_VALIDA >= '"+dtos(dDataBase)+"'"+ENTER
