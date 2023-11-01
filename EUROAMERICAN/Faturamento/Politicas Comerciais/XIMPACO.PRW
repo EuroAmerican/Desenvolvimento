@@ -241,55 +241,8 @@ Do While ! Eof()
 				&(aCampos[nCont][1]) := aCampos[nCont][3]
 			Endif
 
-			IF Alltrim(aCampos[nCont][1]) == "ACO_CODCLI"
-				//IF RTRIM(IT_ACO_CODCLI) $ '011929' 
-				//	XPTO := 0
-				//ENDIF
-			ENDIF
 		Next nCont
 		MsUnlock()
-		
-		// Ajusta os tamanhos das variáveis chaves.
-		/*
-        IT_D5_DOC    := Padr(IT_D5_DOC    , 09)
-        IT_SERIE     := Padr(IT_SERIE     , 03) 
-        IT_FORNECE   := Padr(IT_FORNECE   , 06) 
-        IT_LOJA      := Padr(IT_LOJA   , 02) 
-        IT_D5_PRODUTO:= Padr(IT_D5_PRODUTO, 15)
-        IT_LOTECTL   := Padr(IT_LOTECTL, 10)
-        IT_LOTEFOR   := Padr(IT_LOTEFOR, 12)
-		*/
-		
-		// Posiciona os cadastros.
-		//cMsg := xPosicCad()
-		//IF ! Empty(cMsg)                           
-		//	//aadd(aErro, {IT_NFISCAL, IT_SERIE, IT_FORNECE, IT_D5_PRODUTO, IT_LOTECTL} )  
-		//Else      
-		//	lUpdate := .T.
-			
-			//dbSelectArea("PAO")
-			//dbSetOrder(1) // PAO_FILIAL+PAO_PRODUT+PAO_LOTCTL+PAO_LOTFOR+PAO_FORNEC+PAO_LOJA+PAO_STATUS
-			//dbSeek(xFilial("PAO")+IT_D5_PRODUTO+IT_LOTECTL+IT_LOTEFOR+IT_FORNECE+IT_LOJA)   
-
-			//IF Found()    
-			    //cChave := xFilial("PAO")+IT_NFISCAL+IT_SERIE+IT_FORNECE+IT_LOJA+IT_D5_PRODUTO+IT_LOTECTL
-
-				//IF lPergunta
-				//	IF Aviso("ATENÇÃO", "A chave: "+cChave+" já existe. Deseja Atualizá-la?", {"Sim", "Não"}, 2, "Custo de Fabricação ja Cadastrado") == 2
-				//	   lUpdate := .F.                                       
-				//	Endif
-					
-				//   IF MsgYesNo("Deseja usar a mesma resposta para as próximas ocorrências?")
-				//  		lPergunta := .F.
-				//   Endif
-				//Else
-				//aadd(aDados, {IT_NFISCAL, IT_SERIE, IT_FORNECE, IT_LOJA, IT_D5_PRODUTO, IT_LOTECTL, IT_LOTEFOR, IT_DATAENTR, IT_D5_QUANT, IT_ORIGEM, .F.})
-				//Endif 
-			//Else  
-			//	aadd(aDados, {IT_NFISCAL, IT_SERIE, IT_FORNECE, IT_LOJA, IT_D5_PRODUTO, IT_LOTECTL, IT_LOTEFOR, IT_DATAENTR, IT_D5_QUANT, IT_ORIGEM, .T.})
-			//	aadd(aDados, {IT_NFISCAL, IT_SERIE, IT_FORNECE, IT_LOJA, IT_D5_PRODUTO, IT_LOTECTL, IT_LOTEFOR, IT_DATAENTR, IT_D5_QUANT, IT_ORIGEM, .T.})
-			//Endif
-		//Endif
 		
 		// Muda de registros.
 		ft_fskip()

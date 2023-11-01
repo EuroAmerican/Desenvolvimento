@@ -116,7 +116,7 @@ IF lCalDesc
         Enddo
     Next
 Else
-    nPerMix := 0
+    nPerMix := GETMV("QE_PERCMIX")
 Endif
 
 RestArea(aArea)

@@ -76,7 +76,7 @@ Local nDescTot := 0
 Local cHolding := ""
 Local cNome    := ""
 
-Private eLstEmail := ""
+Private cLstEmail := ""
 
 //--------------------------------------------------------------------------
 // [INICIO ] - Rotina para identificar os pedidos e analisar suas 
@@ -136,8 +136,8 @@ Do While !Eof() //ORCX->(CJ_FILIAL + CJ_XGRPCLI) == cChave .and. !Eof()
     dbSetOrder(1)
     dbSeek(xFilial("SA3")+SCJ->CJ_VEND1)
 
-    IF AT(Alltrim(SA3->A3_EMAIL), eLstEmail) == 0
-        eLstEmail += ";"+Alltrim(SA3->A3_EMAIL)
+    IF AT(Alltrim(SA3->A3_EMAIL), cLstEmail) == 0
+        cLstEmail += ";"+Alltrim(SA3->A3_EMAIL)
     Endif
 
     dbSelectArea("SCJ")
@@ -150,7 +150,7 @@ Do While !Eof() //ORCX->(CJ_FILIAL + CJ_XGRPCLI) == cChave .and. !Eof()
 Enddo
 
 // Emails dos Representantes
-eLstEmail := Lower(Subs(eLstEmail, 2))
+cLstEmail := Lower(Subs(cLstEmail, 2))
 
 dbCloseArea()
 
@@ -587,7 +587,7 @@ cObserv := upper(cObserv)
 //dbSelectArea("SA3")
 //dbSetOrder(1)
 //dbSeek(xFilial("SA3")+cRepres)
-cEmail   := eLstEmail //alltrim(SA3->A3_EMAIL)
+cEmail   := cLstEmail //alltrim(SA3->A3_EMAIL)
 
 // Envia email informativo para o repreentante.
 U_xEnvMail("paulo.santos@euroamerican.com.br", cCopia, "ANÁLISE DE ORÇAMENTO **TESTE** - "+cHolding+" - Lote:"+cLotePrc, cObserv,,.T.)
