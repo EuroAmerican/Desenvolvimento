@@ -590,9 +590,9 @@ cObserv := upper(cObserv)
 cEmail   := cLstEmail //alltrim(SA3->A3_EMAIL)
 
 // Envia email informativo para o repreentante.
-U_xEnvMail("paulo.santos@euroamerican.com.br", cCopia, "ANÁLISE DE ORÇAMENTO **TESTE** - "+cHolding+" - Lote:"+cLotePrc, cObserv,,.T.)
+U_xEnvMail(cEmail, cCopia, "ANÁLISE DE ORÇAMENTO - "+cHolding+" - Lote:"+cLotePrc, cObserv,,.T.)
 
-msginfo("** Colocar email do representante e retirar TESTE do Titulo **", "ATENCAO!!!")
+//msginfo("** Colocar email do representante e retirar TESTE do Titulo **", "ATENCAO!!!")
 
 dbSelectArea("SCJ")
 dbGoto(nRecno)
